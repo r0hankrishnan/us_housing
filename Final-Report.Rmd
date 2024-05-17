@@ -1,0 +1,1070 @@
+---
+title: "Analyzing the Dynamics of the U.S. Housing Prices"
+author: "Rohan Krishnan, Yewon Kim, Dhwani Pareshkumar Kanani"
+date: "2023-12-11"
+output: word_document
+---
+
+# Introduction
+
+The current U.S. housing market is valued at 47 trillion USD (Rosen, 2023) , making it a pivotal factor in gauging the overall welfare of the nation's economy. Homeownership is a widespread aspiration, contributing to the significance of this market. Investors and economists rely on the Housing Price Index (HPI) as one of the most crucial metrics for assessing investment attraction as well as determining the economic conditions. The HPI, is a comprehensive macroeconomic measure that carefully monitors the price fluctuations of single-family homes nationwide. In addition, it serves as an analytical tool for approximating the changes in the rates of mortgage defaults, prepayments, and housing affordability (Liberto, 2023). The Federal Housing Finance Agency compiles this data  by reviewing single-family housing mortgages purchased or securitized by Fannie Mac or Freddie Mac. For this project, our objective was to find an economic data set  that we could explore and analyze to better understand the U.S. economy. Our final dataset from kaggle talks about both the macroeconomics and microeconomic factors impacting house prices in the USA.
+
+## Research Question(s)
+
+The central focus of this research project revolves around the question of how the House Price Index (HPI)  is affected by several  macroeconomic factors. Conducting a project that revolves around the idea of the U.S. house price index can provide us with valuable insights into economic, social, and policy considerations. More precisely,  it can sculpt our knowledge on various aspects such as economic significance meaning that housing is a critical component of the economy. Understanding the factors influencing the HPI can shed light on economic trends, market dynamics, and overall marker of real estate. In addition, you can enrich your understanding about macroeconomic stability. That is to say, housing is often connected to broader economic stability and fluctuations in the HPI can have ripple effects on consumer spending, employment, and overall economic performance. It can help in analyzing consumer behavior where it can aid individuals and families make more informed decisions about homeownership, renting, or other house-related choices. In summary, a project aiming at factors affecting the House Price Index (HPI) is relevant and impactful because it addresses economic, social, and policy dimensions with implications for individuals, businesses, policymakers, and researchers. The final result can have practical applications and contribute to a better understanding of the complex dynamics within the real estate market. The main research questions we are trying analyze are:
+
+1.  What variables are most useful in predicting hpi?
+
+    a\. Which machine learning model best predicts hpi given new data?
+
+## Statement of Purpose
+
+The ultimate goal from this project was to broaden our knowledge about the economy, mortgage and finance, consumer behavior, and investment sectors associated within the U.S. housing market. Lastly, we wanted to apply our skills and understanding from the class to a real world data set.
+
+# Methodology
+
+## Data Collection
+
+We found a "US Housing Market Factors" data set on Kaggle. Kaggle is a platform where one can find numerous types of datasets and competitions related to data science and machine learning. It uses various means of data collection methods and they are often compiled and shared by individuals, organizations, or communities for specific purposes. The data in our data set was collected from FRED (Federal Reserve Economic Data), an online database that offers a wide range of economic time series data. 
+
+```{r, results='hide', message = FALSE}
+#--- Load necessary libraries ---#
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(ggcorrplot)
+library(ggtext)
+library(gt)
+library(skimr)
+library(flextable)
+library(grDevices)
+
+```
+
+```{css, echo = FALSE}
+h1, h4 {
+  text-align: center;
+  color: blue;
+  font-weight: bold;
+}
+```
+
+## Data Set(s)
+
+The "U.S. Housing Market Factors" data set contained three different files labeled as "Annual_Macroeconomic_Factors", "Housing_Macroeconomic_Factors", and "Monthly_Macroeconomic_Factors". After exploring all the files, we identified that the "Annual_Macroeconomic_Factors" data set was simply a summary of the "Monthly_Macroeconomic_Factors" data set. 
+
+In "Monthly_Macroeconomic_Factors" data set, there were eight macroeconomic factors including hpi, House Price Index. The seven other variables were Stock Price Index, Consumer Price Index, Population, Unemployment Rate, Real GDP, Mortgage Rate, and Real Disposable Income. It had 423 observations, from 1987 January to 2022 March. On the other hand, in "Housing_Macroeconomic_Factors" data set, there were twelve factors including hpi. Those variables were population, house supply, gdp, mortgage rate, employment rate, permit_new, ppi_res, m3, cci, delinquency rate, and hcai. Further description about each variable can be found below. This data set had 425 observations, from 1987 January to 2022 May.
+
+Our working data set was created by left joining the "Monthly_Macroeconomic_Factors" and "Housing_Macroeconomic_Factors" data sets by their "Date" variables. We elected to not use the "Annual_Macroeconomic_Factors" in order to maximize the number of observations we could work with within our sample. We named the combined data set "data".
+
+```{r, results = 'hide'}
+#--- First steps ---#
+
+#Load in data
+housing <- read.csv("/Users/rohankrishnan/Downloads/archive (6)/Housing_Macroeconomic_Factors_US (2).csv")
+macro <- read.csv("/Users/rohankrishnan/Downloads/archive (6)/Monthly_Macroeconomic_Factors.csv")
+
+#Join macro to housing by date
+data <- housing %>% left_join(macro, by = "Date")
+
+#Preliminary examination of data
+glimpse(data)
+```
+
+After creating the initial combined data, we removed several duplicate, incorrect, and unnecessary columns (specified in the R code below). We then renamed the remaining columns for ease of syntax and converted all columns into the numeric class.
+
+```{r, results='hide'}
+#--- Basic Data Cleaning ---#
+
+#Remove Housing_Price_Index (there are 2), Date (unnecessary for classification), Mortgage Rate (duplicate), and Population (wrong values)
+data0.5 <- data %>%
+  dplyr::select(-House_Price_Index, -Date, -Mortgage_Rate, -Population)
+
+#Rename longer column names
+data0.5 <- data0.5 %>% 
+        rename("hpi" = "house_price_index",
+               "hs" = "house_supply",
+               "GDP"= "gdp",
+               "mort_rt" = "mortgage_rate" ,
+               "employ_rt" = "employment_rate",
+               "del_rt" = "delinquency_rate",
+              "spi" = "Stock_Price_Index",
+               "cpi" = "Consumer_Price_Index",
+               "unemploy_rt" = "Unemployment_Rate",
+              "rdi" = "Real_Disposable_Income")
+
+#Convert population to numeric variable
+data0.5$population <- data0.5$population %>% as.numeric()
+```
+
+*Table 1* below is the structure of our data after the above steps:
+
+```{r, fig.cap = "Table 1: Structure of Intermediate Data"}
+#View structure of data -- Internal view only no need to display in report
+data0.5 %>%
+  skimr:: skim() %>%
+  dplyr::select(skim_type, skim_variable, n_missing, numeric.hist) %>%
+  flextable::flextable()%>%
+  set_caption(
+    caption = as_paragraph(
+      as_chunk("Table 1: Structure of Intermediate Data",
+               props = fp_text_default(font.family = "Times New Roman",
+                                       font.size = 12,
+                                       italic = TRUE)))) %>%
+  set_header_labels(values = list(
+    skim_type = "Type",
+    skim_variable = "Name",
+    n_missing = "NA values",
+    numeric.hist = "Histogram")) %>%
+  set_table_properties(layout = "autofit")%>%
+  bg(i = seq(2,16,2), bg = "light grey")%>%
+  font(part = "all", fontname = "Times New Roman") %>%
+  fontsize(size = 12) %>%
+  border(i = c(1:16), border.top = fp_border_default(color = "black"))
+```
+
+After converting all the columns to a numeric class and examining the structure of the data, we noticed that there were several variables with missing (NA) values due to a mismatch in dates. In particular, "Del_rt" (Delinquency rate) and "hcai" (Housing credit availability index) had a significant number of NA values, 140 and 51 respectively. We elected to remove "hcai" from our data entirely, as it was nearly 40% NA values. We kept "del_rt" because we suspected it may be significantly correlated with hpi and it had an allowable amount of NA values. Finally, we filtered out all of the remaining NA values in our data set and named our final cleaned data "data2".
+
+```{r, results = 'hide'}
+#Create new dataframe without hcai (too many NAs)
+data1 <- data0.5 %>% dplyr::select(-hcai)
+
+#Summarize data_1 values (mean, quantiles, etc.)
+summary(data1)
+
+#Remove last three rows (NAs)
+data1 <- data1 %>%
+  filter(is.na(GDP) == FALSE)
+data1 %>% summary()
+
+#Create new dataframe with all NAs removed
+data2 <- data1 %>% 
+  na.omit()
+```
+
+## Variables
+
+Since the main research question is trying to uncover what are the most influential variables in predicting the Housing Price Index (HPI), the hpi variable will be our response (target) variable. Our explanatory variables are the remaining 15 variables: "population", "hs", "GDP", "mort_rt", "employ_rt", "permit_new", "ppi_res", "m3", "cci", "del_rt", "spi", "cpi", "unemploy_rt", "Real_GDP", and "rdi". *Table 2* below is a data dictionary with the meaning and class of each of our variables:
+
+```{r}
+#Create data dictionary table for data2:
+
+#Create variable name list
+var_name <- names(data2)
+
+#Create variable class list
+var_type <- vector()
+for (i in 1:ncol(data2)){
+  var_type[i] = class(data2[,i])
+}
+
+#Create variable meaning list
+var_meaning <- c("Housing Price Index at the time of observation",
+                 "Population of US at the time of observation",
+                 "Housing supply at the time of observation",
+                 "Nominal GDP of US at the time of observation",
+                 "US mortgage rates at the time of observation",
+                 "US employment rate at the time of observation",
+                 "Total number of new privately owned housing units authorized in permit-issuing places at the time of observation", 
+                 "US producer price index at the time of observation",
+                 "Total US money supply at the time of observation",
+                 "US consumer confidence index at the time of observation",
+                 "US deliquency rate at the time of observation",
+                 "US stock price index at the time of observation",
+                 "US consumer price index at the time of observation",
+                 "US unemployment rate at the time of observation",
+                 "Real GDP of US at the time of observation",
+                 "US real disposable income at the time of observation"
+)
+
+#Create data frame of variable name and class
+data_var <- data.frame(cbind(var_name, var_type, var_meaning))
+data_var <- data_var %>%
+  rename("Name" = "var_name",
+         "Class" = "var_type",
+         "Meaning" = "var_meaning")
+
+#Map data frame to flextable for display
+data_var %>%
+  flextable()%>%
+  set_caption(
+    caption = as_paragraph(
+      as_chunk("Table 2: Data Dictionary of Cleaned Data",
+               props = fp_text_default(font.family = "Times New Roman",
+                                       font.size = 12,
+                                       italic = TRUE)
+      )
+    )
+  ) %>%
+  set_table_properties(layout = "autofit") %>%
+  bg(i = seq(2,16,2), bg = "light grey") %>%
+  font(part = "all", fontname = "Times New Roman") %>%
+  fontsize(size = 12) %>%
+  border(i = c(1:16), border.top = fp_border_default(color = "black"))
+
+```
+
+We also generated summary statistics for each variable in our cleaned data set.
+
+## Modeling and Analysis Plan
+
+In order to better understand our research question, we will first explore the features and distributions of the data. We will then employ several supervised and unsupervised learning methods to gain a better understanding of the relationships between each explanatory variable and hpi. This section will outline the specific machine learning methods we chose to use as well as the overall roadmap we intend to take when analyzing our data.
+
+## *Description of Analysis*
+
+Specifically, we will use a multiple linear regression (MLR), bootstrapped regression, regression tree (un-tuned and tuned) and a random forest (un-tuned and tuned) to understand which variables are most important in predicting hpi and to evaluate whether or not we can effectively predict hpi given out-of-sample values for our explanatory variables (in the case of MLR, regression tree, and random forest).
+
+## *Analysis Plan*
+
+We will follow the standard procedure of exploratory data analysis followed by iterative modelling to conduct our project. First, we will explore the descriptive statistics of each variable. We will then use data visualization to better understand the behavior of each variable. We will begin with individual density plots to assess each variables distribution and skew. We will then use box plots to better understand any imbalances and to visually identify any outliers. Finally, we will generate a correlation matrix to quantify the linear correlation of each of our explanatory variables with hpi. After finishing our exploratory analysis, we will begin to generate our models (see above). For each model, we will examine important explanatory variables and (when applicable) calculate the test mean absolute error (MAE), mean standard error (MSE), and root mean standard error (RMSE) to quantify each model's predictive ability.
+
+# Results
+
+## Exploratory Data Analysis
+
+This section will discuss our exploratory analysis of the data set.
+
+## *Descriptive Statistics*
+
+The first step in our exploratory analysis was to calculate descriptive statistics for all of our variables. *Table 3* below lists the main summary statistics for each of our variables:
+
+```{r, message=FALSE}
+#--- Final Data Descriptions ---#
+
+#Create summary statistics table for data2:
+
+#Load library
+library(psych)
+
+#Create a data frame of summary statistics
+summary_stats <- describe(data2, fast = TRUE)
+summary_stats$vars <- rownames(summary_stats)
+
+#Map data frame to flextable for display
+summary_stats %>%
+  flextable() %>%
+  set_caption(
+    caption = as_paragraph(
+      as_chunk("Table 3: Summary Statistics of Cleaned Data",
+               props = fp_text_default(font.family = "Times New Roman",
+                                       font.size = 12,
+                                       italic = TRUE)))) %>%
+  set_header_labels(values = list(
+    vars = "Name",
+    n = "N",
+    mean = "Mean",
+    sd = "Std.Dev.",
+    min = "Min",
+    max = "Max",
+    range = "Range",
+    se = "Std. Error")) %>%
+  set_table_properties(layout = "autofit") %>%
+  bg(i = seq(2,16,2), bg = "light grey") %>%
+  font(part = "all", fontname = "Times New Roman") %>%
+  fontsize(size = 12) %>%
+  border(i = c(1:16), border.top = fp_border_default(color = "black"))
+```
+
+Our variables all have very different scales, meaning we will need examine them each on their own plot to look at their distributions. As the table shows, our final data set contains 374 observations with 16 variables, each of which represents a specific indicator of the US economy.
+
+## *Data Visualization*
+
+After calculating descriptive statistics for our variables, we used density plots, box plots, and a correlation matrix to visualize our data. We started by plotting a density plot matrix to examine the distribution of each variable individually. *Figure 1*, a density plot matrix of all 16 variables is shown below:
+
+```{r, fig.width = 10, fig.height = 10}
+#--- Data visualization ---#
+
+#Create density plot matrix
+par(mfrow = c(4,4))
+for (i in 1:ncol(data2)){
+  colname = names(data2)
+  plot(density(data2[,i]), main = paste("Distribution of", colname[i]), family = "Times New Roman")
+  polygon(density(data2[,i]), col = "#F63E02", border = "#061A40")
+}
+mtext(~italic("Figure 1: Density plot matrix of all 16 variables."), side = 3, line = -1.5, outer = TRUE, family = "Times New Roman")
+```
+
+As is made clear by the matrix, none of our variables follow a perfect normal distribution. The housing price index (hpi) appears to be bimodal with a right skew. Population, unsurprisingly, appears to be relatively uniform with a slight left skew. Despite the fact that the US population continues to grow, the population values are relatively close together month-to-month. Housing supply (HS) is heavily right-skewed, indicating that we could potentially force some normality by removing outliers. On the other hand, Nominal GDP (GDP) is heavily left skewed. This is likely to be caused by the 2008 recession and could be removed when cleaning outliers. Mortgage rates (mort_rt), like the housing price index, seem to be bimodal with a slight right skew. Employment rate (employ_rt) was left skewed, meaning we can likely remove some outliers to get it to a normal distribution. The total number of new privately owned housing units authorized in permit-issuing places (permit_new) is our first variable that appears to be approximately normal. The producer price index (ppi_res) has a bimodal distribution with a slight right skew. This makes sense as there are likely two "common" values, one when the economy is doing better and one when it is doing worse. The total US money supply (m3) appears to be right skewed while the consumer confidence index (cci), which measures consumers' overall optimism or pessimism regarding their financial situation, appears to be left skewed. The delinquency rate (del_rt), which is the amount of debt that is past due in the economy, is heavily skewed to the right. This makes sense, as the delinquency rate should not take on extremely high values in a normal or healthy economy. The stock price index (spi) appears to have a slight right skew, though it is close to approximately normal. The consumer price index (cpi) appears to be bimodal. Again, this makes sense since consumer goods tend to occupy certain prices depending on the state of the economy. The unemployment rate (unemploy_rt) is heavily right skewed, since there is usually not high unemployment in the normal economy. Real GDP (Real_GDP) appears to have a very sharp spike around its mean and very narrow tails. This distribution appears to be an extreme version of a normal distribution. It makes sense that real GDP is less spread out than nominal GDP, as real GDP is adjusted for inflation making its values more similar across time. Finally, real disposable income (rdi), which is a household's money left over after paying taxes, appears to be right skewed. This distribution makes sense since the majority of US citizens will not have a high amount of money left over after taxes, but a small minority (millionaires and billionaires) will have very large amounts of money left over.
+
+After looking at the density plots, it is clear that many of our variables are skewed. In order to get a better understanding of if their skewness is an inherent characteristic of the data or if it is caused by data that may not fit within the broader pattern, we can look at boxplots and identify outliers. Below is *Figure 2*, a matrix of box plots for all 16 variables in data2:
+
+```{r, fig.width = 10, fig.height = 10}
+#--- Data Visualization ---#
+
+#Create matrix of boxplots for all variables
+par(mfrow = c(4,4))
+for (i in 1:ncol(data2)){
+  par(family = "Times New Roman")
+  colname = names(data2)
+  boxplot(data2[,i], main = paste("Boxplot of", colname[i]),col = "#F63E02", border = "#061A40")
+}
+mtext(~italic("Figure 2: Box plot matrix of all 16 variables."), side = 3, line = -1.5, outer = TRUE, family = "Times New Roman")
+```
+
+In order to get a better understanding of the range and outliers of each variable, we examined each of their box plots. Each box plot illustrates the range of data from Q1 to Q3. The lines at the top and bottom of each plot indicate the maximum and minimum and there are points outside of those bounds representing any outliers. Housing supply (hs) had a large amount of upper outliers while nominal GDP (GDP) had a large amount of lower outliers. This matches with their density distributions which were heavily right and left skewed, respectively. By removing these outliers before conducting analyses, we could create approximately normal data to satisfy any necessary normality requirements. Other variables with large amounts of outliers include the delinquency rate (del_rt), which had a large amount of upper outliers, and the real GDP (Real_GDP), which had an extremely small box and many upper and lower outliers. Both of these box plots match their respective density distributions of right skewed and thin unimodal. There were some variables with only a small amount of outliers, which corresponded to the variables with average or weak skews. Those variables include the employment rate (employ_rt), which had two lower outliers; the unemployment rate (unemploy_rt), which had four upper outliers; and real disposable income (rdi), which only had one upper outlier.
+
+As discussed above, a potential solution to non-normal distributions would be to remove outliers. We could do this by either filtering out observations that fall outside of three standard deviations from the mean or that fall outside of 1.5 times the IQR away from the first and third quartiles respectively. Before modeling, we would try both methods, re-plot the box plots and density functions, and decide which method best removes outliers without sacrificing too many observations. After better understanding the distributions and outliers of our variables, we looked at each variable's correlation with our response to understand what variables could be potentially significant.
+
+## *Relationships*
+
+The next part of our variable analyses was to create a correlation matrix to better understand the relationship between our 15 explanatory variables and hpi. Below is *Figure 3*, the full correlation matrix, created with ggcorrplot():
+
+```{r, fig.width= 10, fig.height= 10 }
+#--- Data Visualization ---#
+
+#Create correlation vector with correlations between all variables
+corr = data.frame(cor(data2))
+
+#Create correlation matrix of all variables in data2
+ggcorrplot(corr, ggtheme = theme_bw(), show.diag = TRUE, tl.cex = 7, colors = c("#061A40", "white","#F63E02"), lab = TRUE, lab_size = 2, lab_col = "#4A4A4A") +
+  ggtitle("*Figure 3: Correlation matrix between explanatory and response variables.*") +
+  theme(plot.title = ggtext::element_markdown(),
+        text = element_text(family = "Times New Roman", size = 12))
+```
+
+Based on the correlation matrix plot above, hpi (Housing Price Index) has a strong positive correlation with population, ppi_res (producer price Index), m3(total US money supply), spi (Stock Price Index), cpi(consumer price Index), and rdi(real disposable Income) variables. All of these variables have a positive correlation with values very close to 1. This signifies that as one of these factors increases or decreases, it will simultaneously increase or decrease the hpi variable. In contrast, hpi has a strong negative correlation with employ_rt (employment rate), mort_rt (mortgage rate), and cci (consumer confidence Index). The values are roughly close to -1, which implies that each of these variables would have an inverse relationship. Namely, as one increases, the other one decreases and vice versa. The darker the color, the stronger the correlation is between variables and the lighter the color, the weaker the relationship is between variables. For instance, hpi has the weakest negative correlation with factors known as Real_GDP, GDP, and unemploy_rt (unemployment rate). Likewise, it has the weakest positive correlation with permit_new, hs(house_supply), and del_rt (delinquency rate). After viewing the correlation matrix, we filtered out the variables with the strongest correlation with hpi. We considered an absolute correlation of greater than 0.50 to be the threshold for strong correlation.
+
+```{r}
+#--- Data Visualization ---#
+
+#Select variables with |correlation| greater than 0.50
+imp_var <- corr[1] %>%
+  filter(abs(hpi) > 0.50)
+
+imp_var$Name <- rownames(imp_var)
+imp_var <- imp_var[,c(2,1)]
+```
+
+Below is *Table 4*, a table with our most correlated variables and their respective correlation with hpi:
+
+```{r}
+#--- Data Visualization ---#
+
+#Map imp_var data frame to flextable for display
+imp_var %>%
+  flextable()%>%
+  set_caption(
+    caption = as_paragraph(
+      as_chunk("Table 4: Variables with Highest Correlations with hpi",
+               props = fp_text_default(font.family = "Times New Roman",
+                                       font.size = 12,
+                                       italic = TRUE))))%>%
+  set_header_labels(values = list(
+    Name = "Name",
+    hpi = "Correlation with hpi")) %>%
+  set_table_properties(layout = "autofit") %>%
+  bg(i = seq(2,8,2), bg = "light grey") %>%
+  font(part = "all", fontname = "Times New Roman") %>%
+  fontsize(size = 12) %>%
+  border(i = c(1:8), border.top = fp_border_default(color = "black"))
+```
+
+After obtaining these variables, we created scatter plots to more closely examine their relationships with hpi.
+
+The final part of our analysis was creating scatter plots to examine the specific relationships between a subset of our variables and hpi. Below is *Figure 4*, a matrix of scatter plots of our most correlated variables and hpi:
+
+```{r, fig.width=10, fig.height=10}
+#--- Data Visualization ---#
+#Create data set with only variables with strong correlation with hpi
+filtered_data2 <- data2[,c(rownames(imp_var))]
+
+#Create scatter plot matrix for 8 most important variables with hpi
+par(mfrow = c(4,2))
+for (i in 1:ncol(filtered_data2)){
+  plot(x = filtered_data2[,i], y = filtered_data2[,1], xlab = colnames(filtered_data2)[i], ylab = "hpi", main = paste("Scatter plot of", colnames(filtered_data2)[i], "and hpi"), family = "Times New Roman", col = "#F63E02", pch = 21)
+}
+mtext(~italic("Figure 4: Scatter plot matrix hpi and highly correlated variables."), side = 3, line = -1.5, outer = TRUE, family = "Times New Roman")
+```
+
+Based on the above matrix, it is evident that, although these variables had linear correlations above 0.50 (or below -0.50), their relationships are not necessarily linear. For example, population and hpi appear to have a polynomial or exponential relationship with each other; though the relationship is clearly a positive one. Similarly, mortgage rates (mort_rt) and hpi seem to have a strong negative relationship, though it may not be linear. Overall, the most linear relationship appears to be between total US money supply (m3) and hpi and the stock price index (spi) and hpi. This makes sense in that more money in the economy can result in inflation and stocks typically track alongside the housing market.
+
+## Modeling
+
+In order to model the behavior of hpi, we chose to explore a variety of models. We first started by splitting our data2 into a training and testing set.
+
+```{r}
+#--- Pre-Model Splitting ---#
+
+#Load "Metrics" library"
+library(Metrics)
+
+#Change data naming and create train and test sets
+set.seed(100)
+train2 <- data2 %>% sample_frac(size = 0.8)
+test2 <- data2 %>% setdiff(train2)
+```
+
+We used the training set to train our models to examine what are the most influential variables on hpi. We used the test set to validate our predictive models and assess which ones did the best at predicting out-of-sample hpi.
+
+## *Multiple Linear Regression*
+
+The first model we employed was a multiple linear regression. By running a multiple linear regression, we could get predictions of hpi on a test set and examine the coefficients and p-value of each of the explanatory variables to determine variable importance. We first ran a full formula linear regression. The output of our first model is shown below in *Table 5*:
+
+```{r}
+#--- Multiple Linear Regression ---#
+
+#Generate multiple linear regression and obtain coefficients & p-values
+mod_reg = lm(hpi~., data = train2)
+summary(mod_reg)
+
+#Map model to flextable for display
+mod_reg %>%
+  as_flextable()%>%
+  set_caption(
+    caption = as_paragraph(
+      as_chunk("Table 5: Multiple Linear Regression Summary",
+               props = fp_text_default(font.family = "Times New Roman",
+                                       font.size = 12,
+                                       italic = TRUE)
+      )))%>%
+  set_table_properties(layout = "autofit") %>%
+  bg(i = seq(2,16,2), bg = "light grey") %>%
+  font(part = "all", fontname = "Times New Roman") %>%
+  fontsize(size = 12) %>%
+  border(i = c(1:16), border.top = fp_border_default(color = "black"))
+```
+
+From the above table, we found that hs, GDP, employ_rt, permit_new, m3, cci, del_rt, spi, and cpi were all statistically significant predictors at least with an alpha of 0.05 among all 16 variables. After training the model, we evaluated it on our test set. For all of our predictive models, we will be using MAE, MSE, and RMSE as our three evaluation metrics. The values of these three metrics are shown in the code block below:
+
+```{r}
+#--- Multiple Linear Regression ---#
+
+#Calculate model evaluation metrics on test set
+reg_pred <- predict(mod_reg, test2)
+Metrics::mae(test2$hpi, reg_pred)
+Metrics::mse(test2$hpi, reg_pred)
+Metrics::rmse(test2$hpi, reg_pred)
+
+```
+
+After running a full formula multiple linear regression, we wanted to explore if a smaller model would more efficiently explain hpi. To do so, we calculated the AIC for all combinations of our multiple linear regression model and chose the model that minimized AIC. We then reran the regression with our optimal model, as shown below:
+
+```{r}
+#Model selection AIC
+library(MASS)
+final <- stepAIC(mod_reg, direction = "both")
+final$anova
+
+#Fit AIC model
+mod_AIC_reg <- lm(hpi ~ hs + GDP + employ_rt + permit_new + ppi_res + m3 + cci + del_rt + spi + cpi, data = train2)
+
+```
+
+The output of our AIC-minimized model is shown below in *Table 6*:
+
+```{r}
+mod_AIC_reg %>%
+  as_flextable()%>%
+  set_caption(
+    caption = as_paragraph(
+      as_chunk("Table 6: AIC-Minimized Multiple Linear Regression Summary",
+               props = fp_text_default(font.family = "Times New Roman",
+                                       font.size = 12,
+                                       italic = TRUE)
+      )))%>%
+  set_table_properties(layout = "autofit") %>%
+  bg(i = seq(2,11,2), bg = "light grey") %>%
+  font(part = "all", fontname = "Times New Roman") %>%
+  fontsize(size = 12) %>%
+  border(i = c(1:11), border.top = fp_border_default(color = "black"))
+```
+
+By comparing *Table 5* and *Table 6*, we can see the effects of AIC minimization. All of the coefficients in *Table 6* are significant at at least the alpha = 0.01 level. Also, the residual standard error is lower in *Table 6*, indicating that the AIC-minimized model explained more of the variation than the full formula model.
+
+Finally, we calculated our evaluation metrics for the AIC-minimized model, as shown in the code block below:
+
+```{r}
+#--- Multiple Linear Regression ---#
+
+#Calculate model evaluation metrics on test set -- slightly better MSE
+reg_AIC_pred <- predict(mod_AIC_reg, test2)
+Metrics::mae(test2$hpi, reg_AIC_pred)
+Metrics::mse(test2$hpi, reg_AIC_pred)
+Metrics::rmse(test2$hpi, reg_AIC_pred)
+```
+
+## *Bootstrap Regression*
+
+Bootstrapping takes advantage of the concept of re sampling to generate a distribution-free interval for each variable's coefficient. Because bootstrapping is rather computationally heavy, we decided to only run one bootstrap model on the full formula over 100 samples. After running the bootstrap regression, we calculated the 95% confidence interval for each explanatory variable's coefficient to get a better idea of the specific effect each variable may have on hpi.
+
+```{r}
+#--- Bootstrap Regression ---#
+
+#Load libraries
+library(broom)
+library(modelr)
+library(purrr)
+
+#Initialize bootstrap and generate models
+boot <- modelr:: bootstrap(train2, 100)
+mods <- map(boot$strap, ~lm(hpi~., data = .))
+mods_boot <- map_df(mods, broom::tidy, .id = "id")
+mods_boot
+
+#Create list of column names (excluding "hpi") for data2
+columnNames = colnames(data2)
+columnNames = columnNames[-1]
+
+#Generate data frame to hold bootstrapped regression coefficients
+boot_results <- data.frame(Name = character(),
+                             LL = double(),
+                             UL = double())
+
+#Calculate 95% confidence interval of coefficient for each variable
+for (i in 1:length(columnNames)){
+  x <- mods_boot %>%
+    filter(term == columnNames[i]) %>%
+    summarize(Name = columnNames[i],
+              LL = quantile(estimate, 0.025),
+              UL = quantile(estimate, 0.975))
+  boot_results <- rbind(boot_results, x)
+}
+```
+
+*Table 7* below lists the lower and upper bounds of the 95% confidence estimate of each of our explanatory variable's coefficients for predicting hpi:
+
+```{r}
+#--- Bootstrap Regression ---#
+
+#Map 95% confidence interval of coefficients to flextable for display
+boot_results %>%
+  flextable()%>%
+  set_caption(
+    caption = as_paragraph(
+      as_chunk("Table 7: 95% Confidence Interval of Bootstrap Regression Coefficients",
+               props = fp_text_default(font.family = "Times New Roman",
+                                       font.size = 12,
+                                       italic = TRUE)
+      )))%>%
+  set_table_properties(layout = "autofit") %>%
+  bg(i = seq(2,14,2), bg = "light grey") %>%
+  font(part = "all", fontname = "Times New Roman") %>%
+  fontsize(size = 12) %>%
+  border(i = c(1:15), border.top = fp_border_default(color = "black"))
+```
+
+The above table gives us insight into the specific range of effects each variable may have on hpi. Notably, several variables' 95% confidence range of coefficients contain 0 (specifically rdi, Real_GDP, unemploy_rt, cpi, ppi_res, mort_rt, and population).
+
+## *Regression Tree*
+
+After examining our linear regression models, we decided to explore non-parametric methods to understand variable importance and develop a predictive model for hpi. The first non-parametric model we tried was a regression tree.
+
+```{r, message = FALSE}
+#--- Regression Tree ---#
+
+#Load libraries
+library(rpart)
+library(rpart.plot)
+
+#Set seed before creating tree
+set.seed(100)
+
+#Fit tree model
+mod_tree <- rpart(hpi~.,data=train2, method = "anova")
+
+#Visualize regression tree
+rpart.plot(mod_tree, 
+           main = substitute(
+                  paste(
+                  italic("Figure 5: Initial Regression Tree (No Tuning)"))),
+           family = "Times New Roman",
+           box.palette = c("#F63E02","#E4D6A7","#E9B44C","#50A2A7"))
+```
+
+Based on our initial tree, population, cpi, unemploy_rt, and m3 are the most important splits when regressing hpi. It is possible to prune a regression tree by finding the optimal complexity parameter, minimum observations in each split, and maximum number of terminal nodes. To optimize our model using these values, we first visualized the error as the size of the tree increased, as shown below in *Figure 6*:
+
+```{r}
+#--- Regression Tree ---#
+
+#Visualize cp-size trade off
+plotcp(mod_tree, upper = c("none"), family = "Times New Roman")
+mtext(~italic("Figure 6: Error as Size of Tree Increases (left to right)"), side = 3, line = -2, outer = TRUE, family = "Times New Roman")
+
+```
+
+From *Figure 6*, a maxdepth of 6 seemed to be optimal. We confirmed this by creating a regression tree with no cp and graphing its decrease in error as tree size increased. *Figure 7* below shows the un-pruned cp plot with a mark at maxdepth = 6. It is clear that the decrease in error drops off after the red line.
+
+```{r}
+#--- Regression Tree ---#
+
+#Show that maxdepth = 6 seems best by visualizing a full tree with cp = 0
+full_tree <- rpart(hpi~., data = train2, method = "anova",
+                   control = list(cp = 0, xval = 10))
+plotcp(full_tree, upper = c("none"), family = "Times New Roman")
+abline(v = 6, lty = "dashed", col = "#F63E02") #Decrease in error drops off after 6
+mtext(~italic("Figure 7: Error as Size of Unpruned Tree Increases (left to right)"), side = 3, line = -2, outer = TRUE, family = "Times New Roman")
+
+```
+
+After confirming the optimal maxdepth value, we calculated our evaluation metrics for the un-tuned regression tree on the test set, as shown in the code block below:
+
+```{r}
+#--- Regression Tree ---#
+
+#Calculate evaluation metrics on testing set
+tree_pred <- predict(mod_tree, test2)
+Metrics::mae(test2$hpi, tree_pred)
+Metrics::mse(test2$hpi, tree_pred)
+Metrics::rmse(test2$hpi, tree_pred)
+```
+
+We then performed a grid search to find the minsplit and cp value that minimized the error in the regression tree.
+
+```{r}
+#--- Regression Tree ---#
+
+#Grid search to tune minsplit and maxdepth
+tree_grid <- expand.grid(
+  minsplit = seq(5,20,1),
+  maxdepth = seq(6,12,1)
+)
+
+#Iterate through grid and generate a tree for each combination of hyperparameter
+mods_tree <- list()
+
+for (i in 1:nrow(tree_grid)){
+  minsplit <- tree_grid$minsplit[i]
+  maxdepth <- tree_grid$maxdepth[i]
+  
+  set.seed(100)
+  mods_tree[[i]]<- rpart(hpi~., data = train2, method = "anova",
+                         control = list(minsplit = minsplit, maxdepth = maxdepth))
+}
+
+#Extract minimum error associated with ccp value of each model:
+
+#Optimal cp function
+get_cp <- function(y){
+  min <- which.min(y$cptable[,"xerror"])
+  cp <- y$cptable[min,"CP"]
+}
+
+#Minimum error function
+get_min_error <- function(y){
+  min <- which.min(y$cptable[,"xerror"])
+  xerror <- y$cptable[min,"xerror"]
+}
+
+#Find optimal values
+tree_grid %>%
+  mutate(
+    cp = purrr::map_dbl(mods_tree, get_cp),
+    error = purrr:: map_dbl(mods_tree, get_min_error)
+  ) %>%
+  arrange(error) %>%
+  top_n(-5, wt = error) #minsplit = 5, cp = 0.01
+```
+
+After running the grid search, we found that the optimal parameters for our regression tree were a minsplit of 5, cp of 0.01, and maxdepth of 6. We then fit our optimized tree and visualized it, as shown by *Figure 8* below:
+
+```{r}
+#--- Regression Tree ---#
+
+#Fit optimal tree
+set.seed(100)
+optimal_mod_tree <- rpart(hpi~., data = train2, method = "anova",
+                          control = list(minsplit = 5, maxdepth = 6, cp = 0.01))
+
+#Visualize optimal regression tree
+rpart.plot(optimal_mod_tree, 
+           main = substitute(
+                  paste(
+                  italic("Figure 8: Final Regression Tree (Tuned)"))),
+           family = "Times New Roman",
+           box.palette = c("#F63E02","#E4D6A7","#E9B44C","#50A2A7")) 
+
+```
+
+Comparing *Figure 5* and *Figure 8*, it is clear that the two trees are identical. This means that the rpart algorithm was able to find the optimal values on its own, likely because our training data was quite small. After pruning our tree, we calculated its evaluation metrics on the test set, as shown in the code block below:
+
+```{r}
+#Calculate evaluation metrics on testing set -- looks like origingal algorithm was optimal!
+optimal_tree_pred <- predict(optimal_mod_tree, test2)
+Metrics::mae(test2$hpi, optimal_tree_pred)
+Metrics::mse(test2$hpi, optimal_tree_pred)
+Metrics::rmse(test2$hpi, optimal_tree_pred)
+```
+
+## *Random Forest*
+
+After our regression tree analysis, we wanted to add an ensemble-learning method to our analysis. So, we decided to run a random forest and then tune it. The below code block shows our initial random forest model:
+
+```{r}
+#--- Random Forest ---#
+
+#Load library
+library(randomForest)
+
+#Set seed before running forest
+set.seed(100)
+
+#Fit random forest model
+mod_rf<- randomForest(hpi~.,train2,ntree=1000, importance = TRUE)
+```
+
+After fitting our initial random forest, we extracted the variable importance and visualized it. *Figure 9* below illustrates the variable importance of the random forest sorted by percent increase in MSE:
+
+```{r}
+#--- Random Forest ---#
+#Get variable importance from the model fit
+ImpData <- as.data.frame(importance(mod_rf))
+ImpData$Var.Names <- row.names(ImpData)
+
+ImpData %>%
+  arrange(`%IncMSE`) %>%
+  mutate(Name = factor(Var.Names, levels = Var.Names)) %>%
+  ggplot(aes(x = Name, y = `%IncMSE`)) + 
+  geom_segment(aes(x = Name, xend = Name, y = 0, yend = `%IncMSE`),color="#F63E02") +
+  geom_point(aes(size = IncNodePurity), color = "#061A40", alpha = 0.8) + 
+  ggtitle("*Figure 9: Inital Random Forest Variable Importance*") + 
+  theme_light() + 
+  coord_flip() + 
+  theme(
+    legend.position = "bottom",
+    panel.grid.major.y = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.y = element_blank(),
+    text = element_text(family = "Times New Roman", size = 12),
+    plot.title = ggtext::element_markdown()
+  )
+```
+
+We ranked by percentage increase in MSE because it is the more informative metric. This metric tells us how much the prediction MSE increases when a particular variable is permuted. Based on *Figure 9*, unemploy_rt, m3, and population are the three most important variables in predicting hpi.
+
+After looking at the initial variable importance plot, we calculated the relevant model evaluation metrics for the un-tuned random forest, as shown in the code block below:
+
+```{r}
+#--- Random Forest ---#
+
+#Calculate evaluation metrics on testing set
+rf_pred <- predict(mod_rf, test2)
+Metrics::mae(test2$hpi, rf_pred)
+Metrics::mse(test2$hpi, rf_pred)
+Metrics::rmse(test2$hpi, rf_pred)
+```
+
+After constructing our initial random forest, we conducted a grid search to find the optimal mtry value. The mtry parameter sets how many variables the model will randomly sample as candidates for each split. Optimizing mtry allows us to manage the trade off between performance and over fitting. The code block below shows the process of constructing and executing the grid search with a 5-fold CV:
+
+```{r}
+#--- Random Forest ---#
+
+#Grid search to tune mtry:
+
+#Load caret library
+library(caret)
+
+#Set control procedure
+control <- trainControl(method="repeatedcv", number=5, 
+                        repeats=2, search="grid")
+
+#Set seed, define grid, and generate models for grid of mtry values
+set.seed(100)
+tunegrid <- expand.grid(.mtry=seq(1,15,1))
+rf_gridsearch <- train(hpi~., data=train2, method="rf", 
+                       metric="RMSE", tuneGrid=tunegrid, 
+                       trControl=control)
+
+#Display grid search results -- mtry = 5 minimizes RMSE
+print(rf_gridsearch)
+
+```
+
+As shown above, the optimal mtry to minimize RMSE is 5. After confirming the optimal mtry value, we fit our tuned random forest model, as shown in the code block below:
+
+```{r}
+#--- Random Forest ---#
+
+#Fit tuned random forest model
+set.seed(100)
+mod_tuned_rf <- randomForest(hpi~., data=train2, 
+                           ntree=1000, mtry=5, importance = TRUE)
+```
+
+After fitting our tuned model, we extracted the variable importance values (percent decrease in MSE and increase in node purity) and visualized them, as shown in *Figure 10* below:
+
+```{r}
+#--- Random Forest ---#
+
+#Get variable importance from the tuned model fit
+tuned_ImpData <- as.data.frame(importance(mod_tuned_rf))
+tuned_ImpData$Var.Names <- row.names(tuned_ImpData)
+
+tuned_ImpData %>%
+  arrange(`%IncMSE`) %>%
+  mutate(Name = factor(Var.Names, levels = Var.Names)) %>%
+  ggplot(aes(x = Name, y = `%IncMSE`)) + 
+  geom_segment(aes(x = Name, xend = Name, y = 0, yend = `%IncMSE`),color="#F63E02") +
+  geom_point(aes(size = IncNodePurity), color = "#061A40", alpha = 0.8) + 
+  ggtitle("*Figure 10: Tuned Random Forest Variable Importance*") + 
+  theme_light() + 
+  coord_flip() + 
+  theme(
+    legend.position = "bottom",
+    panel.grid.major.y = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.y = element_blank(),
+    text = element_text(family = "Times New Roman", size = 12),
+    plot.title = ggtext::element_markdown()
+  )
+```
+
+*Figure 10* above shows us that unemploy_rt, m3, and population were the three most important variables in our tuned random forest (same as our un-tuned model). It is not too surprising that the top variables are still on top, as tuning primarily helps with our model's predictive ability.
+
+After examining the variable importance plot, we calculated the evaluation metrics for the tuned random forest. There was a noticeable improvement in MSE and RMSE after tuning, which was encouraging for our goal of predicting hpi. The evaluation metrics for the tuned random forest are listed in the code bock below:
+
+```{r}
+#--- Random Forest ---#
+#Calculate evaluation metrics on the test set-- there was an improvement!
+tuned_rf_pred <- predict(mod_tuned_rf, test2)
+Metrics::mae(test2$hpi, tuned_rf_pred)
+Metrics::mse(test2$hpi, tuned_rf_pred)
+Metrics::rmse(test2$hpi, tuned_rf_pred)
+```
+
+## Interpretation of Results
+
+Across all of our models, only m3 showed up consistently as an influential variable. This could indicate some sustained effect m3 has hpi regardless of method of analysis. It is important to note that employ_rt, which is directly correlated with unemploy_rt was significant in our MLR. The fact that m3 showed up consistently across models indicates that it may be an important metric to track for economists interested in housing markets or in the growth of the housing sector.
+
+In addition to looking at influential variables, we wanted to assess which of our models was best at predicting hpi using out-of-sample observations. *Table 8* below summarizes the model evaluation statistics for each of our predictive models:
+
+```{r}
+#--- Results ---#
+
+#Create empty data frame to hold model evaluation metrics
+mod_eval <- data.frame(Model = character(),
+                       MAE = double(),
+                       MSE = double(),
+                       RMSE = double())
+
+#Add each model and its metric to the data frame
+mod_eval <- rbind(mod_eval, list("MLR", Metrics::mae(test2$hpi, reg_pred), Metrics::mse(test2$hpi, reg_pred), Metrics::rmse(test2$hpi, reg_pred)))
+
+mod_eval <- rbind(mod_eval, list("AIC-Min MLR", Metrics::mae(test2$hpi, reg_AIC_pred), Metrics::mse(test2$hpi, reg_AIC_pred), Metrics::rmse(test2$hpi, reg_AIC_pred)))
+
+mod_eval <- rbind(mod_eval, list("Reg Tree", Metrics::mae(test2$hpi, tree_pred), Metrics::mse(test2$hpi, tree_pred), Metrics::rmse(test2$hpi, tree_pred)))
+
+mod_eval <- rbind(mod_eval, list("Pruned Reg Tree", Metrics::mae(test2$hpi, optimal_tree_pred), Metrics::mse(test2$hpi, optimal_tree_pred), Metrics::rmse(test2$hpi, optimal_tree_pred)))
+
+mod_eval <- rbind(mod_eval, list("RF", Metrics::mae(test2$hpi, rf_pred), Metrics::mse(test2$hpi, rf_pred), Metrics::rmse(test2$hpi, rf_pred)))
+
+mod_eval <- rbind(mod_eval, list("Tuned RF", Metrics::mae(test2$hpi, tuned_rf_pred), Metrics::mse(test2$hpi, tuned_rf_pred), Metrics::rmse(test2$hpi, tuned_rf_pred)))
+
+#Reset column names
+colnames(mod_eval) <- c("Model", "MAE", "MSE", "RMSE")
+
+#Map data frame to flextable for display
+mod_eval %>%
+  flextable()%>%
+  set_caption(
+    caption = as_paragraph(
+      as_chunk("Table 8: Model Evaluation Metrics (On Test Set)",
+               props = fp_text_default(font.family = "Times New Roman",
+                                       font.size = 12,
+                                       italic = TRUE)
+      )))%>%
+  set_table_properties(layout = "autofit")%>%
+  bg(i = seq(2,6,2), bg = "light grey") %>%
+  font(part = "all", fontname = "Times New Roman") %>%
+  fontsize(size = 12) %>%
+  border(i = c(1:6), border.top = fp_border_default(color = "black"))
+```
+
+As seen above, the tuned random forest model was by far the best performing model. It outperforms the other models on all three metrics. This makes sense as the economy is a highly irregular system with many moving parts, not lending itself to just linear relationships between variables. Since our data was quite small, we did not run into any computational limitations when running our model.
+
+These results tell us that it may be worth examining more non-linear or ensemble learning models in future examinations. When generalizing to the population, we can see that there are complex non-normal variables that require more complex models to analyze effectively.
+
+## Post-Hoc Analysis
+
+While analyzing economic factors and hpi, we wanted to find out hpi trends in similar economic situations. In order to achieve this, we decided to conduct unsupervised learning based on other variables except the response variable hpi. In this study, k-means and PAM (partitioning around medoids) were used as unsupervised learning methods.
+
+After creating new data excluding hpi from the data used above, we went through a scaling process to obtain accurate weights.
+
+```{r}
+#--- Post Hoc Analysis: Clustering Techniques ---#
+
+#Load necessary libraries
+library(factoextra)
+library(cluster)
+
+#Create data frame without reponse variable (hpi)
+data3<-data2 %>% dplyr::select(-hpi)
+
+#Scale data3
+data3_scaled=scale(data3)
+```
+
+Then, we tried to find the appropriate number of clusters k, and as a result, k=2 was obtained using the silhouette score. It is important to note that there is no standardized way to select the number of clusters and our plots did not all agree. In this case, we chose to use the silhouette score plot for both of our models since it highlights the optimal number of clusters directly. *Figure 11* illustrates our silhouette score plot below:
+
+```{r}
+#--- Post Hoc Analysis: Clustering Techniques ---#
+
+#Visualize silhouette score for k means -- optimal centers = 2
+fviz_nbclust(data3_scaled, kmeans, method = "silhouette", linecolor = "#F63E02") +
+  ggtitle("*Figure 11: Optimal Number of Clusters (K Means)*") + 
+  theme(plot.title = ggtext::element_markdown(),
+        text = element_text(family = "Times New Roman", size = 12)) #2
+
+```
+
+```{r, eval = FALSE}
+#--- Post Hoc Analysis: Clustering Techniques ---#
+
+fviz_nbclust(data3_scaled, kmeans, method = "gap_stat", linecolor = "#F63E02") #5
+fviz_nbclust(data3_scaled, kmeans, method = "wss", linecolor = "#F63E02") #No clear elbow
+```
+
+After deciding on the number of clusters, we ran our k means algorithm.
+
+```{r}
+#--- Post Hoc Analysis: Clustering Techniques ---#
+
+#Run k means algorithm with 2 centers
+mod_km <- kmeans(data3_scaled,centers = 2)
+```
+
+```{r, eval = FALSE}
+#--- Post Hoc Analysis: Clustering Techniques ---#
+
+#Print k means results
+print(mod_km)
+```
+
+Finally, we visualized the k means clustering, as seen in *Figure 12* below:
+
+```{r}
+#--- Post Hoc Analysis: Clustering Techniques ---#
+
+#Visualize k means clustering
+fviz_cluster(mod_km, data3_scaled, stand = F, main = "*Figure 12: Kmeans Clustering*") +
+  scale_color_manual(values = c("#F63E02","#061A40")) +
+  scale_fill_manual(values = c("#F63E02","#061A40")) + 
+  theme(plot.title = ggtext::element_markdown(),
+        text = element_text(family = "Times New Roman", size = 12))
+```
+
+We then plotted the box plots of the hpi distribution of the two different clusters, as shown in *Figure 13* below:
+
+```{r}
+#--- Post Hoc Analysis: Clustering Techniques ---#
+
+#Add clusters to data2 and factorize to create new data frame
+data_km<-cbind(data2, cluster=mod_km$cluster)
+data_km$cluster <-as.factor(data_km$cluster)
+
+#Plot hpi boxplots separated by cluster
+ggplot(data_km, aes(x=cluster,y=hpi))+
+  geom_boxplot(fill = "#F63E02", col = "#061A40") + 
+  labs(title="*Figure 13: Hpi Boxplots Grouped by K Means Clustering*") + 
+  theme(panel.background = element_rect(fill = "white", color = "black"),
+        plot.title = ggtext::element_markdown(),
+        text = element_text(family = "Times New Roman", size = 12))
+```
+
+Although there is some overlap, there is a significant jump in median hpi between the two clusters. This clustering may be most useful when looking at the upper ends of hpi values in each group as that is where there is the least overlap.
+
+After conducting our k means clustering, we visualized the silhouette score for the PAM model, as shown by *Figure 14* below:
+
+```{r}
+#--- Post Hoc Analysis: Clustering Techniques ---#
+
+#Visualize silhouette score to choose number of clusters
+fviz_nbclust(data3_scaled, pam, method = "silhouette", linecolor = "#061A40") +
+  ggtitle("*Figure 14: Optimal Number of Clusters (PAM)*") +
+  theme(plot.title = ggtext::element_markdown(),
+        text = element_text(family = "Times New Roman", size = 12))
+```
+
+Based on the silhouette scores, we decided to use 2 clusters for our PAM clustering model.
+
+```{r, eval = FALSE}
+#--- Post Hoc Analysis: Clustering Analysis ---#
+fviz_nbclust(data3_scaled, pam, method = "gap_stat", linecolor = "#061A40") #10
+fviz_nbclust(data3_scaled, pam, method = "wss", linecolor = "#061A40") #No clear elbow
+```
+
+After deciding on the number of clusters, we fit our PAM clustering model.
+
+```{r}
+#--- Post-Hoc Analysis: Clustering Techniques ---#
+
+#Run PAM algorithm -- how did you decide on 5??
+mod_pam <- pam(data3_scaled, stand = T, metric="manhattan",k=2)
+```
+
+```{r, eval = FALSE}
+#--- Post Hoc Analysis: Clustering Techniques ---#
+
+#Print PAM results
+print(mod_pam)
+```
+
+We then visualized the PAM clustering, as shown by *Figure 15* below:
+
+```{r}
+#--- Post Hoc Analysis: Clustering Techniques ---#
+
+#Visualize PAM clustering
+fviz_cluster(mod_pam, main = "*Figure 15: PAM Clustering*") + 
+  scale_color_manual(values = c("#F63E02","#061A40")) +
+  scale_fill_manual(values = c("#F63E02","#061A40")) + 
+  theme(plot.title = ggtext::element_markdown(),
+        text = element_text(family = "Times New Roman", size = 12))
+```
+
+Finally, we plotted the box plot of hpi distribution for each of the two PAM clusters side-by-side, as shown by *Figure 16* below:
+
+```{r}
+#--- Post Hoc Analysis: Clustering Techniques ---#
+
+#Add clusters to data2 and factorize to create new data frame
+data_pam<-cbind(data2, cluster=mod_pam$clustering)
+data_pam$cluster <-as.factor(data_pam$cluster)
+
+#Plot hpi boxplots separated by cluster
+ggplot(data_pam, aes(x=cluster,y=hpi)) + 
+  geom_boxplot(fill = "#F63E02", col = "#061A40") + 
+  labs(title="*Figure 16: Hpi Boxplots Grouped by PAM Clustering*") + 
+  theme(panel.background = element_rect(fill = "white", color = "black"),
+        plot.title = ggtext::element_markdown(),
+        text = element_text(family = "Times New Roman", size = 12))
+```
+
+Similar to k means, there is some overlap with a significant jump in median hpi between the two clusters. This clustering may be most useful when looking at the upper ends of hpi values in each group as that is where there is the least overlap.
+
+```{r}
+#--- Post Hoc Analysis: Clustering Techniques ---#
+#Cacluate how many observations were classified differently by the two algorithms
+sum(mod_pam$clustering != mod_km$cluster)
+```
+
+Meanwhile, when comparing the clustering results with k-means and pam, only 1 observation were found to be different. Analysis was performed with k=2 in k-means and pam, and as can be seen from the graph, the shape and order of the two clusters were quite similar between the two methods. In the future, we could look to rejoin the clustered data with their associated dates to allow further economic analysis.
+
+# Conclusion
+
+With the goal of better understanding the U.S. economy, our research focused on modeling the relationship between various economic indicators and the housing price index. Using housing and monthly macroeconomic factors data, we tried to determine which variables among different economic factors such as GDP, cpi (consumer price index), and employment rate would impact hpi (housing prices index) the most. Moreover, by attempting various modeling techniques, we tried to find a model that could well explain hpi with various economic factors.
+
+To get a better understanding about our data, we conducted various exploratory analyses. We summarized the data and looked at the distributions of each variable by visualizing density functions and box plots. In addition to this, by creating a correlation matrix and scatter plots, we could learn about the overall relationship and correlations between hpi and other variables. Specifically, we could figure out that population, mortgage rate, producer price index, total US money supply, stock price index, consumer price index, and real disposable index are the variables that have strong correlation with hpi.
+
+After exploring the data, we created several models to understand variable importance and to predict hpi. We created a multiple linear regression, bootstrapped regression, regression tree, and random forest. For each predictive model, we examined variable importance and calculated its mean absolute error, mean squared error, and root mean squared error. As a result of each modeling, various combinations of variables affecting hpi were found. Among them, m3 was commonly included in the results of all modeling conducted, and in addition, a combination of various economic factors, including cpi and population, influenced hpi. Furthermore, in terms of rmse, we concluded that random forest had the smallest rmse among the modeling methods implemented, making it the most appropriate modeling technique for our study. Finally, as a post-hoc analysis, we generated a k means and PAM clustering analysis. Through these unsupervised learning results, it was possible to cluster economic situations, and it was confirmed that hpi was distributed significantly differently depending on these clusters. This supports our hypothesis that economic factors have a significant impact on hpi.
+
+Contrary to the existing expectation that important variables in predicting hpi could be clearly identified through modeling, results were obtained in which important variables appeared differently depending on the model. The reason why this phenomenon occurs can be thought of based on the characteristics of the model. While multiple regression analysis detects linear relationships between variables, regression trees or random forests can capture non-linear relationships. Additionally, in the case of bootstrap regression, the importance of predictor variables may vary depending on the bootstrapped sample. In addition, this phenomenon may be attributed to the characteristics of the data, such as the fact that the data we used in our analysis included several economic indicators.
+
+Our research on analyzing the dynamics of the US housing prices can serve as a stepping stone to better understand the US real estate market and, by extension, the economy. By analyzing and predicting house prices through various economic indicators, various effects can be expected. Specifically, it will help people develop their investment strategy and make financial decisions, and anticipated fluctuations in housing prices can impact decisions related to home purchases, sales, and rentals. Housing price predictions can also contribute to evaluating the health of the real estate market, enabling governments and central banks to formulate policies to maintain stability in the housing and real estate market.
+
+## Limitations
+
+The real estate-related data we used in our analysis was time series data representing monthly indicators. Since the dependent variable, hpi, is likely affected by the passage of time, it would have been useful to apply time series modelling to the data. This was, however, outside of our scope.
+
+Furthermore, in the original data sets, there was a variable 'hcai' that we ignored because of the amount of NAs. Hcai stands for 'housing credit availability index', and is a metric used in the United States to assess the ease of obtaining mortgage credit. As it represents credit availability in the housing market, hcai likely has a direct impact on demand in the housing and market dynamics. In other words, because hcai was a variable that had the potential to play an important role in the movement of hpi, different results may have been obtained if the study had been conducted including this variable.
+
+In general, we a very low volume of data to work with. Having more observations, whether that was via daily observations or a larger time window of consideration would have likely made our models much more robust.
+
+## Suggestions for Future Research
+
+For this research project, we considered all of our variables as numeric variables. With numeric variables, we could apply few analysis methods such as regression trees, random forest, and multiple linear regression. In future research, changing the class of some variables  to categorical class can open up new possibilities for analysis and modeling. This can provide us with completely new results compared to the original method. In addition, we can evaluate the effectiveness of various government policies, such as monetary policies or fiscal policy, in influencing hpi. This research question can be looked at from a global and regional variances where one can investigate whether the influence of certain factors varies across different geographical locations and economic contexts. Lastly, one can integrate the role of technology and its impact on the real estate market and how that affects the hpi variable. For instance, analyzing the role of technology, like real estate technology platforms or smart home features, in shaping the relationship between macroeconomic factors and hpi. 
+
+# Works Cited
+
+Liberto, D. (2023, August 29). Understanding the House price index (HPI) and how it is used. Understanding the House Price Index (HPI) and How It Is Used. <https://www.investopedia.com/terms/h/house-price-index-hpi.asp> 
+
+Rosen, P. (2023, August 11). The US housing market hits a record value of \$47 trillion as the inventory shortage fuels a price boom. Business Insider. <https://markets.businessinsider.com/news/commodities/housing-market-inventory-shortage-home-prices-value-real-estate-property-2023-8.> 
