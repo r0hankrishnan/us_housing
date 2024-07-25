@@ -6,6 +6,21 @@ output: pdf_document
 ---
 ```{r}
 #Load libraries
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(ggcorrplot)
+library(ggtext)
+library(gt)
+library(skimr)
+library(flextable)
+library(grDevices)
+```
 
+```{r}
+#Load data
+getwd(
+)
+data <- read.csv("~/data/house_data.csv")
 ```
 
