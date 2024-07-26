@@ -67,6 +67,7 @@ GDP <- post2003$GDP.x
 #Impute NA values using trend
 imputeGDP <- imputeTS::na_seadec(GDP)
 post2003$imputeGDP <- imputeGDP
+
 #Create imputed category
 post2003$imputedYN <- as.factor(ifelse(
   is.na(
@@ -81,5 +82,29 @@ post2003 %>%
   theme_clean() + 
   theme(axis.text.x=element_text(angle=60, hjust=1)) 
   # +scale_x_date(limit= dateLimit)
+```
+
+```{r}
+#MORTGAGE3OUS seems to be low quality -- remove
+post2003$MORTGAGE30US <- NULL
+
+#Unsure about GDP.y's sources-- remove
+post2003$GDP.y <- NULL
+
+#interest_rate is a duplicate of FEDFUNDS-- remove
+post2003$interest_rate <- NULL
+
+#home_price_index is a duplicate of CSUSHPISA -- remove
+post2003$home_price_index <- NULL
+
+#unemployment_rate is a duplicate of UNRATE -- remove
+post2003$unemployment_rate <- NULL
+
+#unsure of data quality of house_for_sale_or_sold -- remove
+post2003$house_for_sale_or_sold <- NULL
+
+#Create new df and save for data viz
+post2003Viz <- post2003
+write_csv(post2003Viz, "../data/cleaned/")
 ```
 
