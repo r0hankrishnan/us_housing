@@ -18,9 +18,24 @@ library(grDevices)
 ```
 
 ```{r}
-#Load data
-getwd(
-)
-data <- read.csv("~/data/house_data.csv")
+#Get file paths
+temp <- list.files("../data/")
+
+#Read in first df then merge all subsequent dfs
+df <- read.csv(paste("../data/", temp[1], sep = ""))
+
+for(i in temp[c(2:6,8)]){
+  path <- paste("../data/", i, sep = "")
+  dframe <- read.csv(path, header = T)
+  df <- merge(x = df, y = dframe, by = "DATE", all.x = TRUE)
+}
+
+#Change DATE column to Date type
+df$DATE <- as.Date(df$DATE)
+
+#Filter to only include data from 2003 onwards (most data is NA before that)
+post2003 <- df %>%
+  filter(DATE >= "2003-01-01")
+
 ```
 
