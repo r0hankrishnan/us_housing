@@ -49,4 +49,8 @@ p3 <- grid.arrange(p1, p2, nrow = 1)
 
 #Save to assets to directory
 
-
+#Plot hpi values
+p4 <- data %>%
+  ggplot(aes(x = DATE, y = CSUSHPISA, color = FEDFUNDS)) + 
+  geom_point(alpha = 0.50) + 
+  scale_color_gradient(high = palette[2], low = palette[4]); p4
