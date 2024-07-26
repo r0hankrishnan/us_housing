@@ -105,6 +105,31 @@ post2003$house_for_sale_or_sold <- NULL
 
 #Create new df and save for data viz
 post2003Viz <- post2003
-write_csv(post2003Viz, "../data/cleaned/")
+write_csv(post2003Viz, "../data/cleaned/visualizationData.csv")
+
+#Remove GDP.x from post2003 and only leave imputeGDP, remove imputeYN
+post2003$GDP.x <- NULL
+post2003$imputedYN <- NULL
+
+#Rename columns
+post2003 <- post2003 %>% 
+  rename(date = DATE,
+         urbanCPI = CPIAUCSL,
+         fedFunds = FEDFUNDS,
+         clcsHPI = CSUSHPISA,
+         buildPermits = building_permits,
+         constructionPI = const_price_index,
+         delRate = delinquency_rate, 
+         houseSub = housing_subsidies,
+         mortRate = mortgage_rate,
+         constructionUn = construction_unit,
+         totalHouse = total_houses,
+         totalConstSpend = total_const_spending,
+         urbanPop = urban_population,
+         unemploymentRate = UNRATE,
+         )
+#Save as modelling data set
+write_csv(post2003, "../data/modelling/modelling.csv")
 ```
+
 
