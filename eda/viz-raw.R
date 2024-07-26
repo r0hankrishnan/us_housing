@@ -123,14 +123,32 @@ for(i in 1: ncol(data)){
     print("pass")
   }else if(i == 4){
     plots[[ind]] <- ggplot(data, aes_string(x = data[,1], y = data[,i])) + geom_point() + 
-      labs(x = "", y = colnames(data)[i])
+      labs(x = "", y = colnames(data)[i]) +   
+      geom_vline(xintercept = as.Date("2020-03-15"),
+                 linetype = 2, linewidth = 0.50, color = palette[2]) +
+      geom_vline(xintercept = as.Date("2008-09-15"),
+                 linetype = 2, linewidth = 0.50, color = palette[2]) + 
+      annotate(x = ymd("2020-03-15"), y = +Inf, 
+               label = "C19", vjust = 2, geom = "label") +
+      annotate(x = ymd("2008-09-15"), y = +Inf, 
+               label = "Fin. Crisis", vjust = 2, geom = "label") + 
+      theme_igray()
     ind = ind + 1
   }else if(i == 18){
     print("pass")
   }
   else{
     plots[[ind]] <- ggplot(data, aes_string(x = data[,1], y = data[,i])) + geom_line() + 
-      labs(x = "", y = colnames(data)[i])
+      labs(x = "", y = colnames(data)[i]) +
+      geom_vline(xintercept = as.Date("2020-03-15"),
+                 linetype = 2, linewidth = 0.50, color = palette[2]) +
+      geom_vline(xintercept = as.Date("2008-09-15"),
+                 linetype = 2, linewidth = 0.50, color = palette[2]) + 
+      annotate(x = ymd("2020-03-15"), y = +Inf, 
+               label = "C19", vjust = 2, geom = "label") +
+      annotate(x = ymd("2008-09-15"), y = +Inf, 
+               label = "Fin. Crisis", vjust = 2, geom = "label") + 
+      theme_igray()
     ind = ind + 1
   }
 }
