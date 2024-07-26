@@ -1,0 +1,6 @@
+Mortgage rates, GDP, Unemployment Rates, FFR, Population Growth, CPI, S&P Case-Shiller Housing Price Index (USA):
+https://www.kaggle.com/datasets/madhurpant/factors-affecting-usa-national-home-prices?select=Population-Growth.csv
+
+Building Permit, Construction Price Index, Delinquency Rate, GDP, House Sold or For Sale, Housing Subsidies, Income, Interest Rate, Mortgage Rate, 
+New Construction Units, Total House, Totla Construction Spending, Unemployment Rate, Urban Population, Target Variable:
+https://www.kaggle.com/datasets/jyotsnagurjar/factors-influencing-us-house-prices
