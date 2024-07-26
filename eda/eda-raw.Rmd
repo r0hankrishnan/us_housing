@@ -9,6 +9,7 @@ output: pdf_document
 library(dplyr)
 library(tidyverse)
 library(ggplot2)
+library(ggthemes)
 library(ggcorrplot)
 library(ggtext)
 library(gt)
@@ -17,6 +18,7 @@ library(flextable)
 library(grDevices)
 ```
 
+# Import Data
 ```{r}
 #Get file paths
 temp <- list.files("../data/")
@@ -37,5 +39,47 @@ df$DATE <- as.Date(df$DATE)
 post2003 <- df %>%
   filter(DATE >= "2003-01-01")
 
+#Look at data
+post2003 %>% glimpse() #GDP.x appears to be reported quarterly -- need to impute intermediate values-- pulled from FRED
+#Some duplicate variables, I'll use the ones with fewer NA values
+#GDP.y has all values, but unsure of source of data
+
+```
+
+# Data cleaning
+```{r}
+#Look at scatterplot of GDP
+
+#Make data picker
+minDate <- as.Date("2003-01-01")
+maxDate <- as.Date("2010-12-01")
+dateLimit <- c(minDate, maxDate)
+post2003 %>%
+  ggplot(aes(x=DATE, y=GDP.x)) +
+  geom_point(na.rm = T) + 
+  xlab("") +
+  theme_clean() + 
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_x_date(limit= dateLimit) 
+
+GDP <- post2003$GDP.x
+
+#Impute NA values using trend
+imputeGDP <- imputeTS::na_seadec(GDP)
+post2003$imputeGDP <- imputeGDP
+#Create imputed category
+post2003$imputedYN <- as.factor(ifelse(
+  is.na(
+    ifelse(post2003$GDP.x == post2003$imputeGDP, 0, 1)) == T, 
+  1,0))
+
+#Graph GDP and color in imputed data -- looks like it did pretty good!
+post2003 %>%
+  ggplot(aes(x = DATE, y = imputeGDP, color = imputedYN)) + 
+  geom_point(cex = 1, alpha = 0.50) + 
+  xlab("") +
+  theme_clean() + 
+  theme(axis.text.x=element_text(angle=60, hjust=1)) 
+  # +scale_x_date(limit= dateLimit)
 ```
 
