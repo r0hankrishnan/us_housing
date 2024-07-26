@@ -4,3 +4,41 @@ https://www.kaggle.com/datasets/madhurpant/factors-affecting-usa-national-home-p
 Building Permit, Construction Price Index, Delinquency Rate, GDP, House Sold or For Sale, Housing Subsidies, Income, Interest Rate, Mortgage Rate, 
 New Construction Units, Total House, Totla Construction Spending, Unemployment Rate, Urban Population, Target Variable:
 https://www.kaggle.com/datasets/jyotsnagurjar/factors-influencing-us-house-prices
+
+(modelling) Data Dictionary: 
+date: Date (yyyy-mm-dd)
+
+urbanCPI: A measure of the average change over time in the prices paid by urban consumers for a market basket of consumer goods and services.
+          A key indicator for assessing inflation or deflation, influencing consumer spending behavior and economic policy decisions.
+
+fedFunds: The interest rate at which depository institutions lend reserve balances to other depository institutions overnight, as set by the Federal Reserve.
+          This rate is a primary tool for monetary policy, influencing borrowing costs and, subsequently, overall economic activity.
+
+clcsHPI: Measures changes in the prices of residential real estate properties over time, offering insight into the health and trends of the housing market in the United States.                Crucial for assessing the state of the housing market, including property values, trends, and their impact on the broader economy.
+
+buildPermits: # of construction permits in US
+
+constructionPI: Construction price index
+
+delRate: Delinquency rate on mortgages
+
+houseSub: Housing subsidies
+
+income: Median income in the US
+
+mortRate: Mortgage rate in the US
+
+constructionUn: # of construction units in US (?)
+
+totalHouse: Housing supply
+
+toalConstSpend: Total construction spending
+
+urbanPop: Urban population
+
+unemploymentRate: Unemployment rate
+
+imputeGDP: Monthly GDP (imputed with stl trend from quarterly GDP values)
+
+
+
