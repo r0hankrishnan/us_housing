@@ -128,6 +128,7 @@ post2003 <- post2003 %>%
          urbanPop = urban_population,
          unemploymentRate = UNRATE,
          )
+
 #Save as modelling data set
 write_csv(post2003, "../data/modelling/modelling.csv")
 ```
