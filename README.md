@@ -4,7 +4,7 @@
 *Apologies for the incomplete README, I am in the process of improving upon the work in this repository!*
 
 <p align="center">
-  <img src = "./assets/hpi-ffr.png">
+  <img src = "./assets/gdp-imputed.png">
 </p>
 
 This is a repository to hold and expand upon my final project for STAT 1261 (Principles of Data Science). 
