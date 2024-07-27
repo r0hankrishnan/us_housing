@@ -49,22 +49,11 @@ p2 <- data %>%
 p3 <- grid.arrange(p1, p2, nrow = 1)
 
 #Save to assets directory
-ggsave("")
-ggsave(
-  filename,
-  plot = last_plot(),
-  device = NULL,
-  path = NULL,
-  scale = 1,
-  width = NA,
-  height = NA,
-  units = c("in", "cm", "mm", "px"),
-  dpi = 300,
-  limitsize = TRUE,
-  bg = NULL,
-  create.dir = FALSE,
-  ...
-)
+ggsave("gdp-imputed.png",
+       plot = p3,
+       path = "./assets/",
+       dpi = 320)
+
 #Plot hpi values
 p4 <- data %>%
   ggplot(aes(x = DATE, y = CSUSHPISA, color = FEDFUNDS)) + 
