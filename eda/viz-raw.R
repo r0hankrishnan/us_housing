@@ -52,7 +52,9 @@ p3 <- grid.arrange(p1, p2, nrow = 1)
 ggsave("gdp-imputed.png",
        plot = p3,
        path = "./assets/",
-       dpi = 320)
+       width = 14.5,
+       height = 3.79,
+       units = "in")
 
 #Plot hpi values
 p4 <- data %>%
