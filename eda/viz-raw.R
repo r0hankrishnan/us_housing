@@ -69,7 +69,7 @@ p4 <- data %>%
   annotate(x = ymd("2008-09-15"), y = +Inf, 
            label = "Peak of Financial Crisis", vjust = 2, geom = "label") +
   labs(x = "", y = "National Home Price Index",
-       title = "S&P CoreLogic Case-Shiller U.S. National Home Price Index", 
+       title = "S&P CoreLogic Case-Shiller U.S. National Home Price Index over time", 
        subtitle = "Changes in Federal Funds Rate shown using color and size") + 
   ggthemes::theme_igray() +
   scale_color_gradient(name = "Federal Funds Rate",high = palette[2], low = palette[4]) +
@@ -88,7 +88,7 @@ ggsave("hpi-ffr.png",
        height = 5.5,
        units = "in")
 
-#For loop to craete a line plot for each variable across timeframe
+#For loop to create a line plot for each variable across time frame
 plots <- list()
 ind = 1
 for(i in 1: ncol(data)){
