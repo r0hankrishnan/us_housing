@@ -85,7 +85,7 @@ ggsave("hpi-ffr.png",
        plot = p4,
        path = "./assets/",
        width = 14.5,
-       height = 6.5,
+       height = 7.5,
        units = "in")
 
 #For loop to create a line plot for each variable across time frame
