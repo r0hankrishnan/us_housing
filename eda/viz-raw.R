@@ -53,7 +53,7 @@ ggsave("gdp-imputed.png",
        plot = p3,
        path = "./assets/",
        width = 14.5,
-       height = 3.79,
+       height = 5.5,
        units = "in")
 
 #Plot hpi values
@@ -81,6 +81,12 @@ p4 <- data %>%
         legend.title = element_text(size = 10, face = "bold"))
 
 #Save to assets directory
+ggsave("hpi-ffr.png",
+       plot = p4,
+       path = "./assets/",
+       width = 14.5,
+       height = 5.5,
+       units = "in")
 
 #For loop to craete a line plot for each variable across timeframe
 plots <- list()
