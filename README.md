@@ -7,7 +7,7 @@
 *Apologies for the incomplete README, I am in the process of improving upon the work in this repository!*
 
 <p align="center">
-  <img src = "./assets/gdp-imputed.png">
+  <img src = "./assets/hpi-ffr.png">
 </p>
 
 ## Table of Contents
