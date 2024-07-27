@@ -15,6 +15,7 @@ palette <- c("#5F0F40",
 p1 <- data %>%
   ggplot(aes(x=DATE, y=GDP.x)) +
   geom_point(cex = 1) + 
+  geom_smooth(se = F, color = palette[3]) + 
   geom_vline(xintercept = as.Date("2020-03-15"),
              linetype = 2, linewidth = 0.50, color = palette[2]) +
   geom_vline(xintercept = as.Date("2008-09-15"),
@@ -23,7 +24,7 @@ p1 <- data %>%
   annotate(x = ymd("2008-09-15"), y = +Inf, label = "Peak of Financial Crisis", vjust = 2, geom = "label") +
   labs(x = "", y = "GDP (Quarterly)",
        title = "US GDP", 
-       subtitle = "Reported quarterly") + 
+       subtitle = "Reported quarterly (smoothed estimate in orange)") + 
   ggthemes::theme_igray() +
   theme(plot.title = element_text(face = "bold", size = 25, hjust = 0),
         plot.subtitle = element_text(face = "italic", size = 10, hjust = 0))
@@ -48,7 +49,22 @@ p2 <- data %>%
 p3 <- grid.arrange(p1, p2, nrow = 1)
 
 #Save to assets directory
-
+ggsave("")
+ggsave(
+  filename,
+  plot = last_plot(),
+  device = NULL,
+  path = NULL,
+  scale = 1,
+  width = NA,
+  height = NA,
+  units = c("in", "cm", "mm", "px"),
+  dpi = 300,
+  limitsize = TRUE,
+  bg = NULL,
+  create.dir = FALSE,
+  ...
+)
 #Plot hpi values
 p4 <- data %>%
   ggplot(aes(x = DATE, y = CSUSHPISA, color = FEDFUNDS)) + 
@@ -75,47 +91,7 @@ p4 <- data %>%
 
 #Save to assets directory
 
-#Look at ffr and building permits/construction vars
-data %>%
-  ggplot(aes(x = DATE, y = building_permits)) + 
-  geom_line(linewidth = 1, lineend = "round", color = "blue") + 
-  geom_line(aes(x = DATE, y = const_price_index*6), linewidth = 1, color = "red") + 
-  scale_y_continuous(
-    
-    # Features of the first axis
-    name = "First Axis",
-    
-    # Add a second axis and specify its features
-    sec.axis = sec_axis(~./6, name="Construction PI")
-  )
-
-
-meltData <- data %>%
-  gather(key = "var", value = "val", -DATE)
-
-meltData %>%
-  filter(var == "CPIAUCSL") %>%
-  ggplot(aes(x = DATE, y = val, color = var)) + 
-  geom_line()
-
-data$Year <- as.numeric(format(data$DATE,'%Y'))
-data %>%
-  ggplot(aes(x = building_permits, y = total_houses, 
-             color = as.factor(Year))) + 
-  geom_point()
-
-max(data$mortgage_rate, na.rm = T)
-max(data$income, na.rm = T)
-
-data %>%
-  ggplot(aes(x = DATE, y = income)) + 
-  geom_line(color = "red") + 
-  geom_line(aes(y = mortgage_rate * 2900)) +
-  scale_y_continuous(
-    name = "Income",
-    sec.axis = sec_axis(~./2900, name = "Mortgage Rates")
-  )
-1
+#For loop to craete a line plot for each variable across timeframe
 plots <- list()
 ind = 1
 for(i in 1: ncol(data)){
@@ -155,6 +131,3 @@ for(i in 1: ncol(data)){
 
 grid.arrange(grobs = plots, nrow = 4)
 #Save to assets directory
-
-ggplot(data, aes(x = data[,1], y = data[,2])) + geom_line() + 
-  labs(x = "", y = colnames(data)[2])
