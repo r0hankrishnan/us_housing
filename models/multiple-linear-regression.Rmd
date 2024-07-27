@@ -1,0 +1,31 @@
+---
+title: "multiple linear regression"
+author: "Rohan Krishnan"
+date: "2024-07-26"
+output: html_document
+---
+```{r}
+#Load train test split function
+source("../scripts/useful-functions.R")
+#Load tidyverse
+library(tidyverse)
+```
+
+```{r}
+#Load data
+df <- read.csv("../data/modelling/modelling.csv")
+df %>%
+  select(-date)
+
+#Create training and testing sets
+train_test_split(df, propTrain = 0.70, propTest = 0.30)
+```
+
+```{r}
+#Create multiple linear regression
+model <- lm(clcsHPI ~ .-date, train)
+
+#Predict on test
+pred <- predict(model, test)
+```
+
