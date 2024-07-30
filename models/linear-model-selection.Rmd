@@ -1,0 +1,122 @@
+---
+title: "linear-model-selection"
+author: "Rohan Krishnan"
+date: "2024-07-30"
+output: html_document
+---
+# Linear Model Selection (LASSO, after-LASSO OLS, Ridge)
+
+## Load libraries
+```{r, message=FALSE}
+source("../scripts/useful-functions.R")
+library(tidyverse)
+#Lasso + Ridge
+library(glmnet)
+```
+
+## Load data + add factors (use variables from best LR)
+```{r}
+df <- read.csv("../data/modelling/modelling.csv")
+df <- df %>% select(-date) %>% 
+  mutate(year = factor(year, order = TRUE, levels = c(unique(df$year))),
+         month = factor(month, order = TRUE, levels = c(unique(df$month))))
+
+train_test_split(df, 0.70, 0.30)
+```
+
+## Lasso Regression
+```{r}
+#Create x and y training/testing objects
+x.train <- model.matrix(clcsHPI ~ ., train)[,-1]
+y.train <- train %>%
+select(clcsHPI) %>%
+unlist() %>%
+as.numeric()
+
+x.test <- model.matrix(clcsHPI ~ ., test)[,-1]
+y.test <- test %>%
+select(clcsHPI) %>%
+unlist() %>%
+as.numeric()
+
+#Fit lasso CV regression on training data and recover optimal lambda
+set.seed(100)
+modelLasso <- cv.glmnet(x.train, y.train, alpha = 1)
+
+lambdaOpt <- modelLasso$lambda.min; lambdaOpt #0.02891056
+
+#Look at coefficients
+coef(modelLasso, s = lambdaOpt)
+
+#Predict
+predLasso <- predict(modelLasso, s = lambdaOpt, newx = x.test)
+
+#MSE--6.810553
+mean((predLasso - y.test)^2)
+
+#RMSE -- 2.609704
+sqrt(mean((predLasso - y.test)^2))
+
+#MAE -- 1.897543
+mean(abs(predLasso-y.test))
+
+#MAPE -- 0.01043101
+mean(abs((predLasso-y.test)/y.test))
+```
+
+## After Lasso OLS
+```{r}
+#Recover chosen variables and create new train set
+tmpCoef = coef(modelLasso, s=lambdaOpt)
+
+varNames <- tmpCoef@Dimnames[[1]][tmpCoef@i][-1]; 
+varNames #Chose 10 of the 17 plus varying levels of month and year
+
+new.train <- train[,c("urbanCPI", "fedFunds", "buildPermits", "constructionPI", "delRate", "income", "mortRate", "totalHouse", "urbanPop", "unemploymentRate", "year", "month")]
+
+new.train$clcsHPI <- train$clcsHPI
+
+#Fit after Lasso OLS model
+afterLassoModel <- lm(clcsHPI ~ ., new.train)
+
+#Predict
+predAfterLasso <- predict(afterLassoModel, test)
+
+#MSE -- 8.05126 -- similar but slightly worse compared to Lasso
+mean((predAfterLasso - test$clcsHPI)^2)
+
+#RMSE -- 2.837474 -- 1/4 of MSE -> not as good as Lasso
+sqrt(mean((predAfterLasso - test$clcsHPI)^2))
+
+#MAE -- 1.944628
+mean(abs(predAfterLasso - test$clcsHPI))
+
+#MAPE -- 0.01054192
+mean(abs((predAfterLasso - test$clcsHPI)/test$clcsHPI))
+
+```
+
+## Ridge Regression
+```{r}
+set.seed(100)
+#Create ridge regression (using x/y train/test from above)
+modelRidge <- cv.glmnet(x.train, y.train, alpha = 0)
+lambdaRidgeOpt <- modelRidge$lambda.min; lambdaRidgeOpt #3.733942
+
+coef(modelRidge, s = lambdaRidgeOpt)
+
+# Predict
+predRidge <- predict(modelRidge, s = lambdaRidgeOpt, newx = x.test)
+
+#MSE -- 9.822108 -- not as good as Lasso
+mean((predRidge - y.test)^2)
+
+#RMSE -- 3.134024 -- 1/3 of MSE -> better than OLS about the same as Lasso
+sqrt(mean((predRidge - y.test)^2))
+
+#MAE--2.127893
+mean(abs(predRidge - y.test))
+
+#MAPE--0.01157262
+mean(abs((predRidge - y.test)/y.test))
+```
