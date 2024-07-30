@@ -76,29 +76,36 @@ mean(abs((predForest - test$clcsHPI)/test$clcsHPI))
 
 ## Random Forest (tuned)
 
-### Grid search for tuning parameters
+### Find best tuning parameters using tuneRF
 ```{r}
-#Set control procedure -- using caret package
-control <- trainControl(method="repeatedcv", number=5, 
-                        repeats=2, search="grid")
-
-#Set seed, define grid, and generate models for grid of mtry values
+# Algorithm Tune (tuneRF)
 set.seed(100)
-tuneGrid <- expand.grid(.mtry=seq(1,15,1))
-forestGridSearch <- train(clcsHPI~., data=train, method="rf", 
-                       metric="RMSE", tuneGrid=tuneGrid, 
-                       trControl=control)
-
-#Display grid search results -- mtry = 15 minimizes RMSE
-print(forestGridSearch)
+mtryBest <- tuneRF(train[,c(1,2,4:17)], train[,3], stepFactor=1.5, improve=1e-5, ntree=501)
+print(mtryBest)
+plot(mtryBest) #mtry of 5 seems to work best
 ```
+
+### Grid search for tuning parameters using caret
+```{r}
+control <- trainControl(method="repeatedcv", number=10, repeats=3, search="grid")
+
+set.seed(100)
+tuneGrid <- expand.grid(.mtry=c(1:8))
+forestGridSearch <- train(clcsHPI~., data=train, 
+                          method="rf", metric="RMSE", 
+                          tuneGrid=tuneGrid, trControl=control)
+print(forestGridSearch)
+plot(forestGridSearch)
+```
+
+It looks like tuneRF and our grid search disagree on the optimal mtry. I'll go with an mtry of 8 since it is different than the original, untuned model.  
 
 ### Fit tuned random forest
 ```{r}
-#Fit tuned model
+#Fit tuned model using tuneRF
 set.seed(100)
 modelForestTuned <- randomForest(clcsHPI~., data=train, 
-                           ntree=1000, mtry=15, importance = TRUE)
+                           ntree=1000, mtry=8, importance = TRUE)
 ```
 
 ### Look at important variables
@@ -121,6 +128,24 @@ forestTunedImpPlot <- forestTunedImpVar %>%
     panel.border = element_blank(),
     axis.ticks.y = element_blank(),
   )
+```
+
+## Errors
+```{r}
+#Predict
+predForestTuned <- predict(modelForestTuned, test)
+
+#MSE -- 2.228529 -- slightly better than untuned
+mean((predForestTuned - test$clcsHPI)^2)
+
+#RMSE -- 1.492826
+sqrt(mean((predForestTuned - test$clcsHPI)^2))
+
+#MAE -- 1.09951
+mean(abs(predForestTuned - test$clcsHPI))
+
+#MAPE -- 0.006213133
+mean(abs((predForestTuned - test$clcsHPI)/test$clcsHPI))
 ```
 
 ## Compare variable importance between tuned and untuned forest
