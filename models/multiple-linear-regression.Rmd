@@ -6,7 +6,7 @@ output:
   pdf_document: default
   html_document: default
 ---
-# Linear Regression (and other linear methods)
+# Linear Regression
 
 ## Loading Libraries/Functions
 ```{r, message=FALSE}
