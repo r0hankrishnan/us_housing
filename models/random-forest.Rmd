@@ -12,11 +12,119 @@ source("../scripts/useful-functions.R")
 library(tidyverse)
 library(randomForest)
 library(caret)
+library(gridExtra)
 ```
 
 ## Load data + split
 ```{r}
+#Load and preprocess
 df <- read.csv("../data/modelling/modelling.csv")
 model_df_preprocess(df)
+
+#Split
+train_test_split(df, 0.70, 0.30)
+```
+
+## Random Forest (untuned)
+
+###Create inital random forest model
+```{r}
+#Fit model
+set.seed(100)
+modelForest <- randomForest(clcsHPI ~ ., data = train, ntree = 1000, importance = TRUE)
+```
+
+### Look at important variables
+```{r}
+forestImpVar <- as.data.frame(importance(modelForest))
+forestImpVar$varNames <- row.names(forestImpVar)
+
+forestImpPlot <- forestImpVar %>%
+  arrange(`%IncMSE`, IncNodePurity) %>%
+  mutate(Name = factor(varNames, levels = varNames)) %>%
+  ggplot(aes(x = Name, y = `%IncMSE`)) + 
+  geom_segment(aes(x = Name, xend = Name, y = 0, yend = `%IncMSE`)) +
+  geom_point(aes(size = IncNodePurity), alpha = 0.8) + 
+  labs(title = "Untuned RF") + 
+  theme_light() + 
+  coord_flip() + 
+  theme(
+    legend.position = "bottom",
+    panel.grid.major.y = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.y = element_blank(),
+  )
+```
+
+### Errors
+```{r}
+#Predict
+predForest <- predict(modelForest, test)
+
+#MSE -- 2.273641 -- super low!
+mean((predForest - test$clcsHPI)^2)
+
+#RMSE-- 1.50786 -- very similar to MSE
+sqrt(mean((predForest - test$clcsHPI)^2))
+
+#MAE -- 1.107139
+mean(abs(predForest - test$clcsHPI))
+
+#MAPE -- 0.006166471
+mean(abs((predForest - test$clcsHPI)/test$clcsHPI))
+```
+
+## Random Forest (tuned)
+
+### Grid search for tuning parameters
+```{r}
+#Set control procedure -- using caret package
+control <- trainControl(method="repeatedcv", number=5, 
+                        repeats=2, search="grid")
+
+#Set seed, define grid, and generate models for grid of mtry values
+set.seed(100)
+tuneGrid <- expand.grid(.mtry=seq(1,15,1))
+forestGridSearch <- train(clcsHPI~., data=train, method="rf", 
+                       metric="RMSE", tuneGrid=tuneGrid, 
+                       trControl=control)
+
+#Display grid search results -- mtry = 15 minimizes RMSE
+print(forestGridSearch)
+```
+
+### Fit tuned random forest
+```{r}
+#Fit tuned model
+set.seed(100)
+modelForestTuned <- randomForest(clcsHPI~., data=train, 
+                           ntree=1000, mtry=15, importance = TRUE)
+```
+
+### Look at important variables
+```{r}
+forestTunedImpVar <- as.data.frame(importance(modelForestTuned))
+forestTunedImpVar$varNames <- row.names(forestTunedImpVar)
+
+forestTunedImpPlot <- forestTunedImpVar %>%
+  arrange(`%IncMSE`, IncNodePurity) %>%
+  mutate(Name = factor(varNames, levels = varNames)) %>%
+  ggplot(aes(x = Name, y = `%IncMSE`)) + 
+  geom_segment(aes(x = Name, xend = Name, y = 0, yend = `%IncMSE`)) +
+  geom_point(aes(size = IncNodePurity), alpha = 0.8) + 
+  labs(title = "Tuned RF") + 
+  theme_light() + 
+  coord_flip() + 
+  theme(
+    legend.position = "bottom",
+    panel.grid.major.y = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.y = element_blank(),
+  )
+```
+
+## Compare variable importance between tuned and untuned forest
+```{r}
+grid.arrange(forestImpPlot, forestTunedImpPlot, nrow =1)
 ```
 
