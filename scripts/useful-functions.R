@@ -21,3 +21,16 @@ train_test_split <- function(df, propTrain, propTest,
   #Take rest as test & assign to global env
   assign(testName, df[!sample, ], envir = .GlobalEnv)
 }
+
+
+#Take modelling df, remove dates, convert year and month to factors
+model_df_preprocess <- function(df, name = "df"){
+  #Unselect date, convert year & month to ordingal factors
+  newdf <- df %>%
+    select(-date) %>%
+    mutate(year = factor(year, ordered = TRUE, levels = c(unique(df$year))),
+           month = factor(month, ordered = TRUE, levels = c(unique(df$month))))
+  
+  #Assign to global env
+  assign(name, newdf, envir = .GlobalEnv)
+}
