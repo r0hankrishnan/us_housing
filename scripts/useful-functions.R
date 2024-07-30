@@ -1,6 +1,7 @@
 
 #Take df, split based on parameters, return train and test set to global env
-train_test_split <- function(df, propTrain, propTest, trainName, testName){
+train_test_split <- function(df, propTrain, propTest, 
+                             trainName = "train", testName = "test"){
   #Set seed for reproducibility
   set.seed(100)
   
@@ -20,3 +21,5 @@ train_test_split <- function(df, propTrain, propTest, trainName, testName){
   #Take rest as test & assign to global env
   assign(testName, df[!sample, ], envir = .GlobalEnv)
 }
+
+train_test_split(cars, 0.80, 0.20)
