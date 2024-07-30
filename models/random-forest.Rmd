@@ -1,0 +1,22 @@
+---
+title: "random-forest"
+author: "Rohan Krishnan"
+date: "2024-07-30"
+output: html_document
+---
+# Random Forest (with tuning)
+
+## Load libraries + functions
+```{r, message = FALSE}
+source("../scripts/useful-functions.R")
+library(tidyverse)
+library(randomForest)
+library(caret)
+```
+
+## Load data + split
+```{r}
+df <- read.csv("../data/modelling/modelling.csv")
+model_df_preprocess(df)
+```
+
