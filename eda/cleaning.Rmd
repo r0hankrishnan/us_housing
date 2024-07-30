@@ -135,6 +135,10 @@ colSums(is.na(post2003))
 #NAs are low enough that I will just remove them
 post2003NoNA <- na.omit(post2003)
 
+#Add date features -- don't need day since monthly data
+post2003NoNA$year <- lubridate::year(post2003NoNA$date)
+post2003NoNA$month <- lubridate::month(post2003NoNA$date)
+
 #Save as modelling data set
 write_csv(post2003NoNA, "../data/modelling/modelling.csv")
 ```
