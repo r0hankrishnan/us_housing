@@ -1,0 +1,33 @@
+---
+title: "decision-tree"
+author: "Rohan Krishnan"
+date: "2024-07-30"
+output: html_document
+---
+# Decision Tree (unpruned and pruned)
+
+## Load libraries and functions
+```{r, message = FALSE}
+source("../scripts/useful-functions.R")
+#Decision tree + tree plot
+library(rpart)
+library(rpart.plot)
+```
+
+## Load data and split
+```{r}
+#Load data + convert year and month to ordinal factors
+df <- read.csv("../data/modelling/modelling.csv")
+df <- df %>% select(-date) %>%
+  mutate(year = factor(year, order = TRUE, levels = c(unique(df$year))),
+         month = factor(month, order = TRUE, levels = c(unique(df$month))))
+
+#Split
+train_test_split(df, 0.70, 0.30)
+```
+
+## Unpruned Tree
+```{r}
+
+```
+
