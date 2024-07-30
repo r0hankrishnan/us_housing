@@ -21,13 +21,13 @@ library(grDevices)
 # Import Data
 ```{r}
 #Get file paths
-temp <- list.files("../data/")
+temp <- list.files("../data/raw-data/")
 
 #Read in first df then merge all subsequent dfs
-df <- read.csv(paste("../data/", temp[1], sep = ""))
+df <- read.csv(paste("../data/raw-data/", temp[1], sep = ""))
 
 for(i in temp[c(2:6,8)]){
-  path <- paste("../data/", i, sep = "")
+  path <- paste("../data/raw-data/", i, sep = "")
   dframe <- read.csv(path, header = T)
   df <- merge(x = df, y = dframe, by = "DATE", all.x = TRUE)
 }
@@ -129,8 +129,14 @@ post2003 <- post2003 %>%
          unemploymentRate = UNRATE,
          )
 
+#NA check -- still some NA values remaining
+colSums(is.na(post2003))
+
+#NAs are low enough that I will just remove them
+post2003NoNA <- na.omit(post2003)
+
 #Save as modelling data set
-write_csv(post2003, "../data/modelling/modelling.csv")
+write_csv(post2003NoNA, "../data/modelling/modelling.csv")
 ```
 
 
