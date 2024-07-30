@@ -1,6 +1,8 @@
 library(tidyverse)
 library(gridExtra)
+library(grid)
 library(ggthemes)
+library(ggcorrplot)
 
 data <- read.csv("./data/cleaned/visualizationData.csv")
 data$DATE <- as.Date(data$DATE)
@@ -129,7 +131,10 @@ for(i in 1: ncol(data)){
   }
 }
 
-p5 <- grid.arrange(grobs = plots, nrow = 4)
+p5 <- grid.arrange(grobs = plots, nrow = 4, 
+                   top = textGrob(substitute(paste(bold("Numeric Variables by Year")))))
+
+
 
 #Save to assets directory
 ggsave("vars-by-year.png",
@@ -153,3 +158,26 @@ data %>%
   scale_color_continuous(type = "viridis") + 
   theme_bw()
 
+#Correlation plot
+numericVars <- c()
+for(i in colnames(data)){
+  if(i == "imputedYN"){
+    next
+  }
+  if(is.numeric(data[,i]) == TRUE){
+    numericVars <- append(numericVars, i)
+  }
+}
+correlations <- cor(na.omit(data[,c(numericVars)]))
+pCorr <- ggcorrplot(corr =  correlations, colors = c(palette[1], palette[3], palette[5]),
+           ggtheme = "theme_bw", title = "Correlation Plot", tl.cex = 8) +
+  theme(plot.title = element_text(face = "bold"))
+
+#save to assets
+ggsave("correlation-matrix.png",
+       plot = pCorr,
+       path = "./assets/",
+       width = 14.5,
+       height = 7.5,
+       units = "in")
+           
