@@ -2,30 +2,58 @@
 title: "multiple linear regression"
 author: "Rohan Krishnan"
 date: "2024-07-26"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
+# Linear Regression (and other linear methods)
+
+## Loading Libraries/Functions
 ```{r}
 #Load train test split function
 source("../scripts/useful-functions.R")
 #Load tidyverse
 library(tidyverse)
+library(stargazer, verbose = FALSE)
 ```
 
+## Data + Splitting 
 ```{r}
 #Load data
 df <- read.csv("../data/modelling/modelling.csv")
-df %>%
-  select(-date)
+df <- df %>% select(-date)
 
 #Create training and testing sets
 train_test_split(df, propTrain = 0.70, propTest = 0.30)
+
 ```
 
-```{r}
+## Create LR model + Summarize
+```{r, results='asis'}
 #Create multiple linear regression
-model <- lm(clcsHPI ~ .-date, train)
+model <- lm(clcsHPI ~ . , train)
 
-#Predict on test
-pred <- predict(model, test)
+#Look at coefficients
+summary(model)
+
+#Generate nice table
+stargazer(model, type = "latex")
+```
+
+## Check assumptions
+```{r}
+dfResiduals <- as.data.frame(model$residuals) 
+dfResiduals$index = c(1:nrow(dfResiduals))
+
+dfResiduals%>%
+  ggplot(aes(x = index, y = `model$residuals`)) +
+  geom_point() +
+  geom_hline(yintercept = 0, col = "blue", linetype = "dashed")
+```
+
+## Standardize all values and run again?
+```{r}
+df2 <- df %>%
+  mutate_at(c(colnames(df)), ~scale(.) %>% as.vector())
 ```
 
