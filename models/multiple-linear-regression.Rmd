@@ -91,7 +91,7 @@ summary(model2)
 stargazer(model2, type = "latex")
 ```
 
-##Check assumptions
+### Check assumptions
 ```{r}
 #Create df of factor model residuals
 dfResid2 <- data.frame(index = c(1:length(model2$residuals)))
