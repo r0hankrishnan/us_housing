@@ -4,6 +4,8 @@ library(ggthemes)
 
 data <- read.csv("./data/cleaned/visualizationData.csv")
 data$DATE <- as.Date(data$DATE)
+data$year <- year(data$DATE)
+data$month <- month(data$DATE)
 
 palette <- c("#5F0F40",
              "#9A031E",
@@ -25,7 +27,7 @@ p1 <- data %>%
   labs(x = "", y = "GDP (Quarterly)",
        title = "US GDP", 
        subtitle = "Reported quarterly (smoothed estimate in orange)") + 
-  ggthemes::theme_igray() +
+  theme_bw() +
   theme(plot.title = element_text(face = "bold", size = 25, hjust = 0),
         plot.subtitle = element_text(face = "italic", size = 10, hjust = 0))
 
@@ -42,7 +44,7 @@ p2 <- data %>%
   labs(x = "", y = "GDP (Monthly Imputed from Quarterly Values)",
        title = "US GDP", 
        subtitle = "Monthly (Imputed)") + 
-  ggthemes::theme_igray() +
+  theme_bw() +
   theme(plot.title = element_text(face = "bold", size = 25, hjust = 0),
         plot.subtitle = element_text(face = "italic", size = 10, hjust = 0))
 
@@ -71,14 +73,15 @@ p4 <- data %>%
   labs(x = "", y = "National Home Price Index",
        title = "S&P CoreLogic Case-Shiller U.S. National Home Price Index over Time", 
        subtitle = "Changes in Federal Funds Rate shown using color and size") + 
-  ggthemes::theme_igray() +
+  theme_bw() +
   scale_color_gradient(name = "Federal Funds Rate",high = palette[2], low = palette[4]) +
   scale_linewidth(name = "Federal Funds Rate", range = c(0.5,2.5)) +
   guides(color=guide_legend(override.aes=list(fill=NA))) + 
   theme(plot.title = element_text(face = "bold", size = 25, hjust = 0),
         plot.subtitle = element_text(face = "italic", size = 10, hjust = 0),
         legend.key = element_rect(fill = "transparent"),
-        legend.title = element_text(size = 10, face = "bold"))
+        legend.title = element_text(size = 10, face = "bold"),
+        legend.background = element_rect(linewidth = 0, linetype = "blank"))
 
 #Save to assets directory
 ggsave("hpi-ffr.png",
@@ -105,7 +108,7 @@ for(i in 1: ncol(data)){
                label = "C19", vjust = 2, geom = "label") +
       annotate(x = ymd("2008-09-15"), y = +Inf, 
                label = "Fin. Crisis", vjust = 2, geom = "label") + 
-      theme_igray()
+      theme_bw()
     ind = ind + 1
   }else if(i == 18){
     print("pass")
@@ -121,10 +124,32 @@ for(i in 1: ncol(data)){
                label = "C19", vjust = 2, geom = "label") +
       annotate(x = ymd("2008-09-15"), y = +Inf, 
                label = "Fin. Crisis", vjust = 2, geom = "label") + 
-      theme_igray()
+      theme_bw()
     ind = ind + 1
   }
 }
 
-grid.arrange(grobs = plots, nrow = 4)
+p5 <- grid.arrange(grobs = plots, nrow = 4)
+
 #Save to assets directory
+ggsave("vars-by-year.png",
+       plot = p5,
+       path = "./assets/",
+       width = 14.5,
+       height = 7.5,
+       units = "in")
+
+#HPI and CPI over years
+data %>%
+  group_by(year) %>%
+  summarize(avgHPI = mean(CSUSHPISA),
+            avgCPI = mean(CPIAUCSL)) %>%
+  ggplot() +
+  geom_bar(aes(x = year, y = avgHPI, 
+               fill = factor(year, order = TRUE, levels = c(unique(data$year)))), 
+           stat = "identity") +
+  geom_line(aes(x = year, y = avgCPI,
+                color = year)) + 
+  scale_color_continuous(type = "viridis") + 
+  theme_bw()
+
