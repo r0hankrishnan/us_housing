@@ -9,6 +9,7 @@ output: html_document
 ## Load libraries and functions
 ```{r, message = FALSE}
 source("../scripts/useful-functions.R")
+library(tidyverse)
 #Decision tree + tree plot
 library(rpart)
 library(rpart.plot)
@@ -19,9 +20,7 @@ library(purrr)
 ```{r}
 #Load data + convert year and month to ordinal factors
 df <- read.csv("../data/modelling/modelling.csv")
-df <- df %>% select(-date) %>%
-  mutate(year = factor(year, order = TRUE, levels = c(unique(df$year))),
-         month = factor(month, order = TRUE, levels = c(unique(df$month))))
+model_df_preprocess(df)
 
 #Split
 train_test_split(df, 0.70, 0.30)

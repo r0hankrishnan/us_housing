@@ -17,9 +17,7 @@ library(glmnet)
 ## Load data + add factors (use variables from best LR)
 ```{r}
 df <- read.csv("../data/modelling/modelling.csv")
-df <- df %>% select(-date) %>% 
-  mutate(year = factor(year, order = TRUE, levels = c(unique(df$year))),
-         month = factor(month, order = TRUE, levels = c(unique(df$month))))
+model_df_preprocess(df)
 
 train_test_split(df, 0.70, 0.30)
 ```
