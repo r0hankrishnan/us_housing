@@ -4,3 +4,74 @@ author: "Rohan Krishnan"
 date: "2024-07-30"
 output: html_document
 ---
+# K Means Clustering
+
+## Load libraries
+```{r, message = FALSE}
+source("../scripts/useful-functions.R")
+library(factoextra)
+library(cluster)
+library(tidyverse)
+```
+
+## Load and preprocess data
+```{r}
+#Load data + preprocess
+df <- read.csv("../data/modelling/modelling.csv")
+model_df_preprocess(df)
+
+#Scale df
+dfScale <- df %>%
+  select(-clcsHPI, -year, -month) %>%
+  scale()
+```
+
+## PAM
+
+### Look at silhouette scores, gap statistics, and elbow plot for k means
+```{r}
+#Visualize silhouette scores -- 3
+fviz_nbclust(dfScale, pam, method = "silhouette") +
+  labs(title = "Silhouette Scores") +
+  theme_minimal()
+
+#Visualize gap stat -- 10
+fviz_nbclust(dfScale, pam, method = "gap_stat") +
+  labs(title = "Gap Stat") + 
+  theme_minimal()
+
+#Visualize elbow plot -- 3
+fviz_nbclust(dfScale, pam, method = "wss") + 
+  labs(title = "Elbow Plot") + 
+  theme_minimal()
+```
+
+### Fit PAM model
+```{r}
+#Fit model-- use 3 clusters since silhouette and elbow plot agree
+modelPAM <- pam(dfScale, stand = T, metric = "manhattan", k = 3)
+print(modelPAM)
+```
+
+### Visualize clustering
+```{r}
+#Visualize PAM clustering
+fviz_cluster(modelPAM, main = "PAM Clustering",
+             labelsize = 0) + 
+  theme_minimal()
+
+#Compare hpi across clusters
+dfPAM<-cbind(df, cluster=modelPAM$clustering)
+dfPAM$cluster <-as.factor(dfPAM$cluster)
+
+#Plot hpi boxplots separated by cluster
+ggplot(dfPAM, aes(x=cluster,y=clcsHPI, color = cluster)) + 
+  geom_boxplot() + 
+  labs(title="Hpi Grouped by PAM Clustering")
+
+dfPAM %>%
+  group_by(cluster) %>%
+  summarize(meanHPI = mean(clcsHPI)) %>%
+  ggplot(aes(x = cluster , y = meanHPI, fill = cluster)) + 
+  geom_bar(stat = "identity")
+```

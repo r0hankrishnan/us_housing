@@ -4,3 +4,71 @@ author: "Rohan Krishnan"
 date: "2024-07-30"
 output: html_document
 ---
+# K Means Clustering
+
+## Load libraries
+```{r, message = FALSE}
+source("../scripts/useful-functions.R")
+library(factoextra)
+library(cluster)
+library(tidyverse)
+```
+
+## Load and preprocess data
+```{r}
+#Load data + preprocess
+df <- read.csv("../data/modelling/modelling.csv")
+model_df_preprocess(df)
+
+#Scale df
+dfScale <- df %>%
+  select(-clcsHPI, -year, -month) %>%
+  scale()
+```
+
+## K Means
+
+### Look at silhouette scores, gap statistics, and elbow plot for k means
+```{r}
+#Visualize silhouette scores -- 6
+fviz_nbclust(dfScale, kmeans, method = "silhouette") +
+  labs(title = "Silhouette Scores") +
+  theme_minimal()
+
+#Visualize gap stat -- 8
+fviz_nbclust(dfScale, kmeans, method = "gap_stat") +
+  labs(title = "Gap Stat") + 
+  theme_minimal()
+
+#Visualize elbow plot -- 3 or 5?
+fviz_nbclust(dfScale, kmeans, method = "wss") + 
+  labs(title = "Elbow Plot") + 
+  theme_minimal()
+```
+
+### Run K Means
+```{r}
+#Fit K Means -- use silhouette score since metrics don't agree
+modelKMeans <- kmeans(dfScale, centers = 6)
+print(modelKMeans)
+```
+
+### Visualize clustering
+```{r}
+#Plot clusters
+fviz_cluster(modelKMeans, dfScale, stand = FALSE, main = "Kmeans Clustering",
+             labelsize = 0) +
+  theme_minimal()
+
+#Look at median hpi across clusters
+dfKMeans<-cbind(df, cluster=modelKMeans$cluster)
+dfKMeans$cluster <-as.factor(dfKMeans$cluster)
+
+#Plot hpi boxplots separated by cluster
+dfKMeans %>%
+  ggplot(aes(x=cluster,y=clcsHPI, color = cluster))+
+  geom_boxplot() + 
+  labs(title="CLCS HPI By Cluster") + 
+  theme_minimal()
+```
+
