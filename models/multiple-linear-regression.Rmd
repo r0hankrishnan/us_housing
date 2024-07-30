@@ -32,7 +32,9 @@ train_test_split(df, propTrain = 0.70, propTest = 0.30)
 
 ```
 
-## Create LR model + Summarize
+## Linear Model (no factor)
+
+### Create LR model + Summarize
 ```{r, results='asis'}
 #Create multiple linear regression
 model <- lm(clcsHPI ~ . -Factormonth - Factoryear , train)
@@ -42,7 +44,23 @@ summary(model)
 
 #Generate nice table
 stargazer(model, type = "latex")
+```
 
+### Check assumptions
+```{r}
+#Make df with residuals
+dfResiduals <- data.frame("residuals" = model$residuals)
+dfResiduals$index = c(1:nrow(dfResiduals))
+
+#Plot -- looks better than non-factor model
+dfResiduals%>%
+  ggplot(aes(x = index, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, col = "blue", linetype = "dashed")
+```
+
+### Errors
+```{r}
 #Predict
 pred <- predict(model, test)
 
@@ -59,20 +77,9 @@ mean(abs(pred - test$clcsHPI))
 mean(abs((pred - test$clcsHPI)/test$clcsHPI))
 ```
 
-## Check assumptions
-```{r}
-#Make df with residuals
-dfResiduals <- data.frame("residuals" = model$residuals)
-dfResiduals$index = c(1:nrow(dfResiduals))
+## Linear Model (factor values)
 
-#Plot -- looks better than non-factor model
-dfResiduals%>%
-  ggplot(aes(x = index, y = residuals)) +
-  geom_point() +
-  geom_hline(yintercept = 0, col = "blue", linetype = "dashed")
-```
-
-## Try with factor values
+### Fit model with factor values
 ```{r, results='asis'}
 #Model
 model2 <- lm(clcsHPI ~ . -year -month, train)
@@ -82,7 +89,23 @@ summary(model2)
 
 #Nice table
 stargazer(model2, type = "latex")
+```
 
+##Check assumptions
+```{r}
+#Create df of factor model residuals
+dfResid2 <- data.frame(index = c(1:length(model2$residuals)))
+dfResid2$residuals <- model2$residuals
+
+#Plot
+dfResid2%>%
+  ggplot(aes(x = index, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, col = "blue", linetype = "dashed")
+```
+
+### Errors
+```{r}
 #Predict
 pred2 <- predict(model2, test)
 
@@ -100,16 +123,4 @@ mean(abs((pred2 - test$clcsHPI)/test$clcsHPI))
 
 ```
 
-#Check assumptions
-```{r}
-#Create df of factor model residuals
-dfResid2 <- data.frame(index = c(1:length(model2$residuals)))
-dfResid2$residuals <- model2$residuals
-
-#Plot
-dfResid2%>%
-  ggplot(aes(x = index, y = residuals)) +
-  geom_point() +
-  geom_hline(yintercept = 0, col = "blue", linetype = "dashed")
-```
 

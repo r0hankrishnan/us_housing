@@ -25,6 +25,8 @@ train_test_split(df, 0.70, 0.30)
 ```
 
 ## Lasso Regression
+
+### Fit model and find best lambda
 ```{r}
 #Create x and y training/testing objects
 x.train <- model.matrix(clcsHPI ~ ., train)[,-1]
@@ -47,7 +49,10 @@ lambdaOpt <- modelLasso$lambda.min; lambdaOpt #0.02891056
 
 #Look at coefficients
 coef(modelLasso, s = lambdaOpt)
+```
 
+### Errors
+```{r}
 #Predict
 predLasso <- predict(modelLasso, s = lambdaOpt, newx = x.test)
 
@@ -65,6 +70,8 @@ mean(abs((predLasso-y.test)/y.test))
 ```
 
 ## After Lasso OLS
+
+### Get coefficients and fit OLS
 ```{r}
 #Recover chosen variables and create new train set
 tmpCoef = coef(modelLasso, s=lambdaOpt)
@@ -78,7 +85,10 @@ new.train$clcsHPI <- train$clcsHPI
 
 #Fit after Lasso OLS model
 afterLassoModel <- lm(clcsHPI ~ ., new.train)
+```
 
+### Errors
+```{r}
 #Predict
 predAfterLasso <- predict(afterLassoModel, test)
 
@@ -97,6 +107,8 @@ mean(abs((predAfterLasso - test$clcsHPI)/test$clcsHPI))
 ```
 
 ## Ridge Regression
+
+### Fit model and find best lambdas
 ```{r}
 set.seed(100)
 #Create ridge regression (using x/y train/test from above)
@@ -104,7 +116,10 @@ modelRidge <- cv.glmnet(x.train, y.train, alpha = 0)
 lambdaRidgeOpt <- modelRidge$lambda.min; lambdaRidgeOpt #3.733942
 
 coef(modelRidge, s = lambdaRidgeOpt)
+```
 
+### Errors
+```{r}
 # Predict
 predRidge <- predict(modelRidge, s = lambdaRidgeOpt, newx = x.test)
 
