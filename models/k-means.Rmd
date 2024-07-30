@@ -1,0 +1,6 @@
+---
+title: "kmeans"
+author: "Rohan Krishnan"
+date: "2024-07-30"
+output: html_document
+---
