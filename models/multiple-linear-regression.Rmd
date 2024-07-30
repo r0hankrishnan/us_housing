@@ -65,7 +65,7 @@ mean(abs((pred - test$clcsHPI)/test$clcsHPI))
 dfResiduals <- data.frame("residuals" = model$residuals)
 dfResiduals$index = c(1:nrow(dfResiduals))
 
-#Plot
+#Plot -- looks better than non-factor model
 dfResiduals%>%
   ggplot(aes(x = index, y = residuals)) +
   geom_point() +
