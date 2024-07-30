@@ -9,11 +9,11 @@ output:
 # Linear Regression (and other linear methods)
 
 ## Loading Libraries/Functions
-```{r}
+```{r, message=FALSE}
 #Load train test split function
 source("../scripts/useful-functions.R")
 #Load tidyverse
-library(tidyverse)
+library(tidyverse, verbose = FALSE)
 library(stargazer, verbose = FALSE)
 ```
 
@@ -23,6 +23,10 @@ library(stargazer, verbose = FALSE)
 df <- read.csv("../data/modelling/modelling.csv")
 df <- df %>% select(-date)
 
+df$Factoryear <- factor(df$year, order = TRUE, 
+                               levels = c(unique(df$year)))
+df$Factormonth <- factor(df$month, order = TRUE, 
+                               levels = c(unique(df$month)))
 #Create training and testing sets
 train_test_split(df, propTrain = 0.70, propTest = 0.30)
 
@@ -31,29 +35,81 @@ train_test_split(df, propTrain = 0.70, propTest = 0.30)
 ## Create LR model + Summarize
 ```{r, results='asis'}
 #Create multiple linear regression
-model <- lm(clcsHPI ~ . , train)
+model <- lm(clcsHPI ~ . -Factormonth - Factoryear , train)
 
 #Look at coefficients
 summary(model)
 
 #Generate nice table
 stargazer(model, type = "latex")
+
+#Predict
+pred <- predict(model, test)
+
+#MSE--29.31077--Not great
+mean((pred - test$clcsHPI)^2)
+
+#RMSE--5.413942--1/6 of MSE -> model is ok but has some big misses
+sqrt(mean((pred - test$clcsHPI)^2))
+
+#MAE--4.159417
+mean(abs(pred - test$clcsHPI))
+
+#MAPE--0.02270099
+mean(abs((pred - test$clcsHPI)/test$clcsHPI))
 ```
 
 ## Check assumptions
 ```{r}
-dfResiduals <- as.data.frame(model$residuals) 
+#Make df with residuals
+dfResiduals <- data.frame("residuals" = model$residuals)
 dfResiduals$index = c(1:nrow(dfResiduals))
 
+#Plot
 dfResiduals%>%
-  ggplot(aes(x = index, y = `model$residuals`)) +
+  ggplot(aes(x = index, y = residuals)) +
   geom_point() +
   geom_hline(yintercept = 0, col = "blue", linetype = "dashed")
 ```
 
-## Standardize all values and run again?
+## Try with factor values
+```{r, results='asis'}
+#Model
+model2 <- lm(clcsHPI ~ . -year -month, train)
+
+#Summarize
+summary(model2)
+
+#Nice table
+stargazer(model2, type = "latex")
+
+#Predict
+pred2 <- predict(model2, test)
+
+#MSE-- 12.83391-- Much better than non-factor
+mean((pred2 - test$clcsHPI)^2)
+
+#RMSE-- 3.582445-- 1/4 of MSE-- Better but still quite different than MSE
+sqrt(mean((pred2 - test$clcsHPI)^2))
+
+#MAE -- 2.403261
+mean(abs(pred2 - test$clcsHPI))
+
+#MAPE -- 0.0128168
+mean(abs((pred2 - test$clcsHPI)/test$clcsHPI))
+
+```
+
+#Check assumptions
 ```{r}
-df2 <- df %>%
-  mutate_at(c(colnames(df)), ~scale(.) %>% as.vector())
+#Create df of factor model residuals
+dfResid2 <- data.frame(index = c(1:length(model2$residuals)))
+dfResid2$residuals <- model2$residuals
+
+#Plot
+dfResid2%>%
+  ggplot(aes(x = index, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, col = "blue", linetype = "dashed")
 ```
 
