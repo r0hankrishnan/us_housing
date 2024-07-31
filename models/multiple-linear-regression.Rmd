@@ -57,7 +57,7 @@ dfResiduals$index = c(1:nrow(dfResiduals))
 pNoFactor <- dfResiduals%>%
   ggplot(aes(x = index, y = residuals)) +
   geom_point() +
-  labs(title = "LR without Ordinal Year and Month-- Clearly not Random") + 
+  labs(title = "LR without Ordinal Year and Month-- Clearly Not Random") + 
   geom_hline(yintercept = 0, col = "blue", linetype = "dashed") + 
   theme_minimal()
 ```
