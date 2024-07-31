@@ -77,6 +77,10 @@ The table above highlights the incredible predictive power of the random forest 
 
 The random forest models also allow us to plot nice variable importance charts, shown below: 
 
+<p align="center">
+  <img src = "./assets/rf-variable-imps.png">
+</p>
+
 ### Clustering
 
 
