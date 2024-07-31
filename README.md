@@ -2,20 +2,22 @@
 *Note:*
 *If you are visiting from my CV, please reference `./classwork/Final-Report.Rmd` file to see my code and writing submissions or view the word document for the final report.*
 
-*The report uses different data than what is listed in this repository. I have done my best to recreate/improve upon the orginal data set using Kaggle. I will be working on separating the code to make the overall project more digestible.*
-
-*Apologies for the incomplete README, I am in the process of improving upon the work in this repository!*
-
-<p align="center">
-  <img src = "./assets/hpi-ffr.png">
-</p>
-
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Data](#data)
 3. [Exploration](#exploration)
 5. [Modeling](#modeling)
+     a. [Prediction](#prediction)
+     b. [Clustering](#clustering)
 6. [Dashboarding](#dashboarding)
+
+<p align="center">
+  <img src = "./assets/hpi-ffr.png">
+</p>
+
+*The report uses different data than what is listed in this repository. I have done my best to recreate/improve upon the orginal data set using Kaggle. I will be working on separating the code to make the overall project more digestible.*
+
+*Apologies for the incomplete README, I am in the process of improving upon the work in this repository!*
 
 ## Introduction
 
@@ -119,6 +121,8 @@ I then made the same visualizations as with the kmeans model.
 Again, there appears to be a noticeable difference in median hpi between clusters. 
 
 ## Dashboarding
+Finally, to practice my shiny skills, I created a simple kmeans sandbox dashboard. In this dashboard, you can adjust the k value from 1 to 10 and watch how the clusters change and how the median hpi compares between clusters. 
+
 <p align="center">
   <img src = "./assets/shiny.gif">
 </p>
