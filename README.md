@@ -39,7 +39,21 @@ The above chart illustrates each numeric variable's trend over the dates in the 
   <img src = "./assets/gdp-imputed.png">
 </p>
 
-The above chart illustrates the quarterly gdp and 
+The above chart illustrates the quarterly GDP with a smoothing estimate overlay on the left and the imputed monthly GDP on the right. As can be seen in the chart, the seasonal decomposition imputation seems to match very well with the general trend of the quarterly GDPs. 
+
+I also examined the Case-Shiller Housing Price Index over time and how it corresponded with the federal funds rate, a fundamental interest rate set by the federal reserve. 
+
+<p align="center">
+  <img src = "./assets/hpi-ffr.png">
+</p>
+
+I used color and size filters to create a dynamic line chart illustrating how fluctuations in hpi corresponded to increases/decreases in the federal funds rate. Some interesting points on the chart include around 2008 when the line risees sharply (HPI increases) while also becoming thicker and darker (federal funds rate increases). The same corresponding increases happen at the end of the chart as well.
+
+Finally, I created a correlation matrix to illustrate how each numeric variable may be related to the housing price index. 
+
+<p align="center">
+  <img src = "./assets/correlation-matrix.png">
+</p>
 
 ## Modeling
 
