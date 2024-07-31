@@ -104,7 +104,7 @@ dfResid2$residuals <- model2$residuals
 pFactor <- dfResid2%>%
   ggplot(aes(x = index, y = residuals)) +
   geom_point() +
-  labs(title = "LR with Ordinal Year and Moonth-- Slightly Better?") + 
+  labs(title = "LR with Ordinal Year and Month-- Slightly Better?") + 
   geom_hline(yintercept = 0, col = "blue", linetype = "dashed") + 
   theme_minimal()
 ```
