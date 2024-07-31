@@ -1,6 +1,7 @@
 # Examining the US Housing Market between 2003 and 2022
 *Note:*
 *If you are visiting from my CV, please reference `./classwork/Final-Report.Rmd` file to see my code and writing submissions or view the word document for the final report.*
+
 *TLDR: Unemployment and the Federal Funds Rate seem to be important factors in predicting/understanding the Housing Price Index!*
 
 ## Table of Contents
