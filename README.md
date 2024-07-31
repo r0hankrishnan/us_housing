@@ -33,6 +33,14 @@ The raw code for my data exploration can be found in `./eda/viz-raw.R`. This R f
   <img src = "./assets/vars-by-year.png">
 </p>
 
+The above chart illustrates each numeric variable's trend over the dates in the data set. The next visualization I made was the following:
+
+<p align="center">
+  <img src = "./assets/gdp-imputed.png">
+</p>
+
+The above chart illustrates the quarterly gdp and 
+
 ## Modeling
 
 ## Dashboarding
