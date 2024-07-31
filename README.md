@@ -69,7 +69,7 @@ Below are the performance metrics from each model (*note: after the second entry
 | Ridge Regression | 9.822108 | 3.134024 | 2.127893 | 0.01157262 |
 | Decision Tree (Pruned) | 59.4734 | 7.7119 | 6.289486 | 0.03404775 |
 | Random Forest (Untuned) | 2.273641 | 1.50786 | 1.107139 | 0.006166471 |
-| Random Forest (Tuned with GridSearch) | 2.228529 | 1.492826 | 1.09951 | 0.006213133 |
+|** Random Forest (Tuned with GridSearch) | 2.228529 | 1.492826 | 1.09951 | 0.006213133 **|
 
 
 
