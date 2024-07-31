@@ -16,3 +16,7 @@
 ## Introduction
 
 The current U.S. housing market is valued at 47 trillion USD (Rosen, 2023). Home ownership is a widespread aspiration, contributing to the ongoing growth of this market. Investors and economists rely on the Housing Price Index (HPI) as a crucial metric for assessing economic conditions. The HPI is a comprehensive macroeconomic measure that carefully monitors the price fluctuations of single-family homes nationwide. It also serves as an analytical tool for approximating the changes in the rates of mortgage defaults, prepayments, and housing affordability (Liberto, 2023). The Federal Housing Finance Agency compiles this data by reviewing single-family housing mortgages purchased or securitized by Fannie Mac or Freddie Mac. In this repo, I attempt to recreate the data set I used for the original project, organize, remake, and improve my modeling and visualizations, and elaborate on my learnings below. 
+
+<p align="center">
+  <img src = "./assets/shiny.gif">
+</p>
