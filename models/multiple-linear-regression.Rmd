@@ -131,11 +131,11 @@ mean(abs((pred2 - test$clcsHPI)/test$clcsHPI))
 
 ## Look at heteroskedasticity plots together
 ```{r}
-pCompare <- grid.arrange(pNoFactor, pFactor, nrow = 1)
+plotCompare <- grid.arrange(pNoFactor, pFactor, nrow = 1)
 
 #save
 ggsave("compare-LR.png",
-       plot = pCompare,
+       plot = plotCompare,
        path = "../assets/",
        width = 14.5,
        height = 7.5,
