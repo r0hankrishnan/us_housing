@@ -15,6 +15,7 @@ source("../scripts/useful-functions.R")
 #Load tidyverse
 library(tidyverse, verbose = FALSE)
 library(stargazer, verbose = FALSE)
+library(gridExtra)
 ```
 
 ## Data + Splitting 
@@ -53,10 +54,12 @@ dfResiduals <- data.frame("residuals" = model$residuals)
 dfResiduals$index = c(1:nrow(dfResiduals))
 
 #Plot -- looks better than non-factor model
-dfResiduals%>%
+pNoFactor <- dfResiduals%>%
   ggplot(aes(x = index, y = residuals)) +
   geom_point() +
-  geom_hline(yintercept = 0, col = "blue", linetype = "dashed")
+  labs(title = "LR without Ordinal Year and Month-- Clearly not Random") + 
+  geom_hline(yintercept = 0, col = "blue", linetype = "dashed") + 
+  theme_minimal()
 ```
 
 ### Errors
@@ -98,10 +101,12 @@ dfResid2 <- data.frame(index = c(1:length(model2$residuals)))
 dfResid2$residuals <- model2$residuals
 
 #Plot
-dfResid2%>%
+pFactor <- dfResid2%>%
   ggplot(aes(x = index, y = residuals)) +
   geom_point() +
-  geom_hline(yintercept = 0, col = "blue", linetype = "dashed")
+  labs(title = "LR with Ordinal Year and Moonth-- Slightly Better?") + 
+  geom_hline(yintercept = 0, col = "blue", linetype = "dashed") + 
+  theme_minimal()
 ```
 
 ### Errors
@@ -123,4 +128,17 @@ mean(abs((pred2 - test$clcsHPI)/test$clcsHPI))
 
 ```
 
+
+## Look at heteroskedasticity plots together
+```{r}
+pCompare <- grid.arrange(pNoFactor, pFactor, nrow = 1)
+
+#save
+ggsave("compare-LR.png",
+       plot = pCompare,
+       path = "../assets/",
+       width = 14.5,
+       height = 7.5,
+       units = "in")
+```
 
