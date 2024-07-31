@@ -59,6 +59,10 @@ I created several models to predict the housing price index using my other expla
 
 Below are the performance metrics from each model (*note: after the second entry, all models used ordinal year and month features*):
 
+<p align="center">
+  <img src = "./assets/compare-LR.png">
+</p>
+
 | Model | MSE | RMSE | MAE | MAPE |
 |-------|-----|------|-----|------|
 | Linear Regression (continuous year and month variables) | 29.31077 | 5.413942 | 4.159417 | 0.02270099 |
