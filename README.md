@@ -82,9 +82,41 @@ The random forest models also allow us to plot nice variable importance charts, 
 </p>
 
 ### Clustering
+In addition to my predictive models, I ran two clustering algorithms, **K Means and Partitioning Around Medioids**. The k means algorithm's silhouette score indicated the optimal number of clusters to be 6: 
 
+<p align="center">
+  <img src = "./assets/silhouette-kmeans.png">
+</p>
 
+After generating the model, I visualized its clustering and compared the median housing price index across clusters. 
 
+<p align="center">
+  <img src = "./assets/clustering-kmeans.png">
+</p>
+
+<p align="center">
+  <img src = "./assets/hpi-kmeans.png">
+</p>
+
+There are clearly some differences in median hpi across clusters, indicating that there may be some information there. In the future, it would be interesting to plot those clusters and housing price index values with some of the temporal variables in the data set. 
+
+After the k means model, I repeated the same steps for the PAM model. The PAM algorithm's silhouette score indicated the optimal number of clusters to be 3:
+
+<p align="center">
+  <img src = "./assets/silhouette-pam.png">
+</p>
+
+I then made the same visualizations as with the kmeans model. 
+
+<p align="center">
+  <img src = "./assets/clustering-pam.png">
+</p>
+
+<p align="center">
+  <img src = "./assets/hpi-pam.png">
+</p>
+
+Again, there appears to be a noticeable difference in median hpi between clusters. 
 
 ## Dashboarding
 <p align="center">
