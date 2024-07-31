@@ -58,6 +58,8 @@ Finally, I created a correlation matrix to illustrate how each numeric variable 
 ## Modeling
 I created several models to predict the housing price index using my other explanatory variables. I mainly tested for predictive test accuracy; however, several of the models also reveal insights into important relationships between the explanatory variables and the housing price index. The models I created can be found in the `models` folder. Each file contains a different "type" of model (from linear regression through tuned random forests and clustering algorithms). I also created a K Means and PAM (Partitioning Around Medioids) algorithm to conduct a small post-hoc analysis. 
 
+### Predictive Modeling
+
 Below are the performance metrics from each model (*note: after the second entry, all models used ordinal year and month features*):
 
 | Model | MSE | RMSE | MAE | MAPE |
@@ -69,7 +71,13 @@ Below are the performance metrics from each model (*note: after the second entry
 | Ridge Regression | 9.822108 | 3.134024 | 2.127893 | 0.01157262 |
 | Decision Tree (Pruned) | 59.4734 | 7.7119 | 6.289486 | 0.03404775 |
 | Random Forest (Untuned) | 2.273641 | 1.50786 | 1.107139 | 0.006166471 |
-|** Random Forest (Tuned with GridSearch) | 2.228529 | 1.492826 | 1.09951 | 0.006213133 **|
+| **Random Forest (Tuned with GridSearch)** | **2.228529** | **1.492826** | **1.09951** | **0.006213133** |
+
+The table above highlights the incredible predictive power of the random forest algorithm. Even without any tuning, it outperforms our best performing linear model, indicating that there are likely some variables that have more than a simple linear relationship to the housing price index. Another interesting point is the improvement seen between the linear regression with ordinal year and month variables vs without. By making the year and month variables ordinal, we are encoding the relationship between, for example, December 2019 and January 2020. With this change, the model does not assume that 2003 is equally different to 2010 as 2024. 
+
+The random forest models also allow us to plot nice variable importance charts, shown below: 
+
+### Clustering
 
 
 
