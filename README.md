@@ -3,13 +3,13 @@
 *If you are visiting from my CV, please reference `./classwork/Final-Report.Rmd` file to see my code and writing submissions or view the word document for the final report.*
 
 ## Table of Contents
-1. [Introduction](#introduction)
-2. [Data](#data)
-3. [Exploration](#exploration)
-5. [Modeling](#modeling)
-     a. [Prediction](#prediction)
-     b. [Clustering](#clustering)
-6. [Dashboarding](#dashboarding)
+- [Introduction](#introduction)
+- [Data](#data)
+- [Exploration](#exploration)
+- [Modeling](#modeling)
+-      [Predictive Modeling](#predictive-modeling)
+-       [Clustering](#clustering)
+-   [Dashboarding](#dashboarding)
 
 <p align="center">
   <img src = "./assets/hpi-ffr.png">
