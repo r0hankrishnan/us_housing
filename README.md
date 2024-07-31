@@ -2,20 +2,17 @@
 *Note:*
 *If you are visiting from my CV, please reference `./classwork/Final-Report.Rmd` file to see my code and writing submissions or view the word document for the final report.*
 
-*The report uses different data than what is listed in this repository. I have done my best to recreate/improve upon the orginal data set using Kaggle. I will be working on separating the code to make the overall project more digestible.*
-
-*Apologies for the incomplete README, I am in the process of improving upon the work in this repository!*
-
-<p align="center">
-  <img src = "./assets/hpi-ffr.png">
-</p>
+*TLDR: Unemployment and the Federal Funds Rate seem to be important factors in predicting/understanding the Housing Price Index!*
 
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Data](#data)
 3. [Exploration](#exploration)
-5. [Modeling](#modeling)
-6. [Dashboarding](#dashboarding)
+4. [Modeling](#modeling) {[Predictive Modeling](#predictive-modeling) & [Clustering](#clustering)}
+5. [Dashboarding](#dashboarding)
+6. [Conclusion](#conclusion)
+
+*The report uses different data than what is listed in this repository. I have done my best to recreate/improve upon the orginal data set using Kaggle. I will be working on separating the code to make the overall project more digestible.*
 
 ## Introduction
 
@@ -73,7 +70,7 @@ Below are the performance metrics from each model (*note: after the second entry
 | Random Forest (Untuned) | 2.273641 | 1.50786 | 1.107139 | 0.006166471 |
 | **Random Forest (Tuned with GridSearch)** | **2.228529** | **1.492826** | **1.09951** | **0.006213133** |
 
-The table above highlights the incredible predictive power of the random forest algorithm. Even without any tuning, it outperforms our best performing linear model, indicating that there are likely some variables that have more than a simple linear relationship to the housing price index. Another interesting point is the improvement seen between the linear regression with ordinal year and month variables vs without. By making the year and month variables ordinal, we are encoding the relationship between, for example, December 2019 and January 2020. With this change, the model does not assume that 2003 is equally different to 2010 as 2024. 
+The table above highlights the incredible predictive power of the random forest algorithm. Even without any tuning, it outperforms our best performing linear model, indicating that there are likely some variables that have more than a simple linear relationship to the housing price index. It also was the best model in terms of MSE-to-RMSE-ratio, indicating that it was not creating wildly large residuals for certain values. Another interesting point is the improvement seen between the linear regression with ordinal year and month variables vs without. By making the year and month variables ordinal, we are encoding the relationship between, for example, December 2019 and January 2020. With this change, the model does not assume that 2003 is equally different to 2010 as 2024. 
 
 The random forest models also allow us to plot nice variable importance charts, shown below: 
 
@@ -119,6 +116,17 @@ I then made the same visualizations as with the kmeans model.
 Again, there appears to be a noticeable difference in median hpi between clusters. 
 
 ## Dashboarding
+Finally, to practice my shiny skills, I created a simple kmeans sandbox dashboard. In this dashboard, you can adjust the k value from 1 to 10 and watch how the clusters change and how the median hpi compares between clusters. 
+
 <p align="center">
   <img src = "./assets/shiny.gif">
 </p>
+
+## Conclusion
+With the goal of better understanding the U.S. economy, this project focused on modeling the relationship between various economic indicators and the housing price index. Using monthly macroeconomic data, I tried to determine which variables among different economic factors such as GDP, the consumer price index), and unemployment rate would most impact the housing price index. By attempting various modeling techniques, I was able to find a model that could decently predict the housing price index given the data and list some of the most important variables in determining the housing price index.
+
+To get a better understanding about our data, I conducted various exploratory analyses. I summarized the data and looked at the distributions of each variable by visualizing density functions. By creating a correlation matrix and scatter plots, I learned about the overall relationship and correlations between hpi and other variables.
+
+After exploring the data, I created several models to understand and predict the housing price index. In total, I created two multiple linear regressions, a pruned regression tree, an untuned random forest, a tuned random forest, a k means model, and a PAM model. For each predictive model, I examined variable importance and calculated its MSE, RMSE, MAE, and MAPE. From our random forest (and across our linear models), it appears that the unemployement rate and federal funds rate are consistently important variables in predicting the housing price index (from a basic macroeconomic viewpoint, this checks out!). As a post-hoc analysis, the clustering algorithms helped confirm that the housing price index was distributed significantly differently depending on clusters of the explanatory variables, supporting the hypothesis that macroeconomic factors can be used to model the housing price index (and thus, the housing market). 
+
+Overall, this project was great practice in implementing and interpreting different types of models. I had to think about what each evaluation metric really meant. How variable importance is described/quantified in different models, and how I could translate my findings into understandable writing. I think using machine learning for variable importance examination is an interesting application of ML in the field of economic research. It could serve as a starting point to identify areas of further study or even uncover relationships that contradict current economic theory.
