@@ -150,6 +150,13 @@ mean(abs((predForestTuned - test$clcsHPI)/test$clcsHPI))
 
 ## Compare variable importance between tuned and untuned forest
 ```{r}
-grid.arrange(forestImpPlot, forestTunedImpPlot, nrow =1)
+impPlots <- grid.arrange(forestImpPlot, forestTunedImpPlot, nrow =1)
+
+ggsave("rf-variable-imps.png",
+       plot = impPlots,
+       path = "../assets/",
+       width = 14.5,
+       height = 7.5,
+       units = "in")
 ```
 
