@@ -65,6 +65,8 @@ Below are the performance metrics from each model (*note: after the second entry
   <img src = "./assets/compare-LR.png">
 </p>
 
+*Heteroskedasticity plot comparison between a model using ordinal encoding and non-ordinal encoding for month and year.*
+
 | Model | MSE | RMSE | MAE | MAPE |
 |-------|-----|------|-----|------|
 | Linear Regression (continuous year and month variables) | 29.31077 | 5.413942 | 4.159417 | 0.02270099 |
