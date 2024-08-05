@@ -131,7 +131,7 @@ Finally, to practice my shiny skills, I created a simple kmeans sandbox dashboar
 </p>
 
 ## Conclusion
-With the goal of better understanding the U.S. economy, this project focused on modeling the relationship between various economic indicators and the housing price index. Using monthly macroeconomic data, I tried to determine which variables among different economic factors such as GDP, the consumer price index), and unemployment rate would most impact the housing price index. By attempting various modeling techniques, I was able to find a model that could decently predict the housing price index given the data and list some of the most important variables in determining the housing price index.
+This project focused on modeling the relationship between various economic indicators and the housing price index with the goal of better understanding the U.S. economy. Using monthly macroeconomic data, I tried to determine which variables among different economic factors such as GDP, the consumer price index), and unemployment rate would most impact the housing price index. Via various modeling techniques, I was able to find a model that could decently predict the housing price index given the data and list some of the most important variables in determining the housing price index.
 
 To get a better understanding about our data, I conducted various exploratory analyses. I summarized the data and looked at the distributions of each variable by visualizing density functions. By creating a correlation matrix and scatter plots, I learned about the overall relationship and correlations between hpi and other variables.
 
