@@ -46,7 +46,7 @@ I also examined the Case-Shiller Housing Price Index over time and how it corres
   <img src = "./assets/hpi-ffr.png">
 </p>
 
-I used color and size filters to create a dynamic line chart illustrating how fluctuations in hpi corresponded to increases/decreases in the federal funds rate. Some interesting points on the chart include around 2008 when the line risees sharply (HPI increases) while also becoming thicker and darker (federal funds rate increases). The same corresponding increases happen at the end of the chart as well.
+I used color and size filters to create a dynamic line chart illustrating how fluctuations in hpi corresponded to increases/decreases in the federal funds rate. Some interesting points on the chart include around 2006-2007 when the line risees sharply (HPI increases) while also becoming thicker and darker (federal funds rate increases). This can likely be attributed to the growing housing bubble that eventually caused the global financial crisis of 2008. The same corresponding increases happen at the end of the chart as well, corresponding with the COVID-19 pandemic. 
 
 Finally, I created a correlation matrix to illustrate how each numeric variable may be related to the housing price index. 
 
