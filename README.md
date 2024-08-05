@@ -8,9 +8,11 @@
 1. [Introduction](#introduction)
 2. [Data](#data)
 3. [Exploration](#exploration)
-4. [Modeling](#modeling) {[Predictive Modeling](#predictive-modeling) & [Clustering](#clustering)}
-5. [Dashboarding](#dashboarding)
-6. [Conclusion](#conclusion)
+4. [Modeling](#modeling)
+   - [Predictive Modeling](#predictive-modeling)
+   - [Clustering](#clustering)
+6. [Dashboarding](#dashboarding)
+7. [Conclusion](#conclusion)
 
 *The report uses different data than what is listed in this repository. I have done my best to recreate/improve upon the orginal data set using Kaggle. I will be working on separating the code to make the overall project more digestible.*
 
