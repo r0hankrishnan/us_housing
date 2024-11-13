@@ -14,7 +14,7 @@
 6. [Dashboarding](#dashboarding)
 7. [Conclusion](#conclusion)
 
-*The `classwork/Final Report.doc` uses different data than what is listed in this repository. I have done my best to recreate/improve upon the orginal data set using Kaggle. I will be working on separating the code to make the overall project more digestible.*
+*The `classwork/Final-Report.docx` uses different data than what is listed in this repository. I have done my best to recreate/improve upon the orginal data set using Kaggle. I will be working on separating the code to make the overall project more digestible.*
 
 ## Introduction
 
