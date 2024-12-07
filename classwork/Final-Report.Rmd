@@ -1068,3 +1068,5 @@ For this research project, we considered all of our variables as numeric variabl
 Liberto, D. (2023, August 29). Understanding the House price index (HPI) and how it is used. Understanding the House Price Index (HPI) and How It Is Used. <https://www.investopedia.com/terms/h/house-price-index-hpi.asp> 
 
 Rosen, P. (2023, August 11). The US housing market hits a record value of \$47 trillion as the inventory shortage fuels a price boom. Business Insider. <https://markets.businessinsider.com/news/commodities/housing-market-inventory-shortage-home-prices-value-real-estate-property-2023-8.> 
+
+
