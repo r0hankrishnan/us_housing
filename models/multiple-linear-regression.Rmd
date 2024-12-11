@@ -11,7 +11,7 @@ output:
 ## Loading Libraries/Functions
 ```{r, message=FALSE}
 #Load train test split function
-source("../scripts/useful-functions.R")
+source("../scripts/useful_functions.R")
 #Load tidyverse
 library(tidyverse, verbose = FALSE)
 library(stargazer, verbose = FALSE)
@@ -24,9 +24,9 @@ library(gridExtra)
 df <- read.csv("../data/modelling/modelling.csv")
 df <- df %>% select(-date)
 
-df$Factoryear <- factor(df$year, order = TRUE, 
+df$factor_year <- factor(df$year, order = TRUE, 
                                levels = c(unique(df$year)))
-df$Factormonth <- factor(df$month, order = TRUE, 
+df$factor_month <- factor(df$month, order = TRUE, 
                                levels = c(unique(df$month)))
 #Create training and testing sets
 train_test_split(df, propTrain = 0.70, propTest = 0.30)
@@ -38,46 +38,70 @@ train_test_split(df, propTrain = 0.70, propTest = 0.30)
 ### Create LR model + Summarize
 ```{r, results='asis'}
 #Create multiple linear regression
-model <- lm(clcsHPI ~ . -Factormonth - Factoryear , train)
+model_no_factor <- lm(clcsHPI ~ . -factor_month - factor_year , train)
 
 #Look at coefficients
-summary(model)
+summary(model_no_factor)
 
 #Generate nice table
-stargazer(model, type = "latex")
+as_flextable(model_no_factor) %>% set_caption(
+        caption = as_paragraph(
+          as_chunk("Table: Output of Linear Regression without Ordinal Factors of Year and Month Features",
+                   props = fp_text_default(font.family = "Times New Roman",
+                                           font.size = 12,
+                                           italic = TRUE)))) %>%
+  set_table_properties(layout = "autofit")%>%
+  font(part = "all", fontname = "Times New Roman")
+
+#stargazer(model_no_factor, type = "latex")
+
 ```
 
 ### Check assumptions
 ```{r}
 #Make df with residuals
-dfResiduals <- data.frame("residuals" = model$residuals)
-dfResiduals$index = c(1:nrow(dfResiduals))
+df_residuals_nf <- data.frame("residuals" = model_no_factor$residuals)
+df_residuals_nf$index = c(1:nrow(df_residuals_nf))
 
 #Plot -- looks better than non-factor model
-pNoFactor <- dfResiduals%>%
+plot_no_factor <- df_residuals%>%
   ggplot(aes(x = index, y = residuals)) +
   geom_point() +
-  labs(title = "LR without Ordinal Year and Month-- Clearly Not Random") + 
-  geom_hline(yintercept = 0, col = "blue", linetype = "dashed") + 
-  theme_minimal()
+  labs(title = "LR without Ordinal Year and Month-- Clearly Not Random",
+       x = "Index", y = "Residuals") + 
+  geom_hline(yintercept = 0, col = palette[3], linetype = "dashed") + 
+  theme_minimal() + 
+  theme(plot.title = element_text(face = "bold"))
+
+plot_no_factor
 ```
 
 ### Errors
 ```{r}
+errors <- data.frame(matrix(data = "", nrow = 4, ncol = 0))
+# errors <- cbind(errors, data.frame("nf_lr" = c(mean((pred_nf - test$clcsHPI)^2), sqrt(mean((pred_nf - test$clcsHPI)^2)), 
+#                   mean(abs(pred_nf - test$clcsHPI)), mean(abs((pred_nf - test$clcsHPI)/test$clcsHPI)))))
+rownames(errors) <- c("MSE", "RMSE", "MAE", "MAPE")
+
+source("../scripts/useful_functions.R")
+errors <- initialize_errors(nrows = 4, row_names = c("MSE", "RMSE", "MAE", "MAPE"))
+errors <- append_errors(errors_df = errors, model = model_no_factor,
+                        model_name = "nf_lr", test = test, target = "clcsHPI")
+
 #Predict
-pred <- predict(model, test)
+pred_nf <- predict(model_no_factor, test)
 
 #MSE--29.31077--Not great
-mean((pred - test$clcsHPI)^2)
+mean((pred_nf - test$clcsHPI)^2)
 
 #RMSE--5.413942--1/6 of MSE -> model is ok but has some big misses
-sqrt(mean((pred - test$clcsHPI)^2))
+sqrt(mean((pred_nf - test$clcsHPI)^2))
 
 #MAE--4.159417
-mean(abs(pred - test$clcsHPI))
+mean(abs(pred_nf - test$clcsHPI))
 
 #MAPE--0.02270099
-mean(abs((pred - test$clcsHPI)/test$clcsHPI))
+mean(abs((pred_nf - test$clcsHPI)/test$clcsHPI))
 ```
 
 ## Linear Model (factor values)
@@ -85,57 +109,72 @@ mean(abs((pred - test$clcsHPI)/test$clcsHPI))
 ### Fit model with factor values
 ```{r, results='asis'}
 #Model
-model2 <- lm(clcsHPI ~ . -year -month, train)
+model_factor <- lm(clcsHPI ~ . -year -month, train)
 
 #Summarize
-summary(model2)
+summary(model_factor)
 
 #Nice table
-stargazer(model2, type = "latex")
+as_flextable(model_factor) %>% set_caption(
+        caption = as_paragraph(
+          as_chunk("Table: Output of Linear Regression with Ordinal Factors of Year and Month Features",
+                   props = fp_text_default(font.family = "Times New Roman",
+                                           font.size = 12,
+                                           italic = TRUE)))) %>%
+  set_table_properties(layout = "autofit")%>%
+  font(part = "all", fontname = "Times New Roman")
+
+#stargazer(model_factor, type = "latex")
 ```
 
 ### Check assumptions
 ```{r}
 #Create df of factor model residuals
-dfResid2 <- data.frame(index = c(1:length(model2$residuals)))
-dfResid2$residuals <- model2$residuals
+df_residuals_f <- data.frame(index = c(1:length(model_factor$residuals)))
+df_residuals_f$residuals <- model_factor$residuals
 
 #Plot
-pFactor <- dfResid2%>%
+plot_factor <- df_residuals_f%>%
   ggplot(aes(x = index, y = residuals)) +
   geom_point() +
-  labs(title = "LR with Ordinal Year and Month-- Slightly Better?") + 
-  geom_hline(yintercept = 0, col = "blue", linetype = "dashed") + 
-  theme_minimal()
+  labs(title = "LR with Ordinal Year and Month",
+       subtitle = "Appears to be slightly better",
+       x = "Index", y = "Residuals") + 
+  geom_hline(yintercept = 0, col = palette[3], linetype = "dashed") + 
+  theme_minimal() + 
+  theme(plot.title = element_text(face = "bold"),
+        plot.subtitle = element_text(face = "italic")); plot_factor
 ```
 
 ### Errors
 ```{r}
 #Predict
-pred2 <- predict(model2, test)
+pred_f <- predict(model_factor, test)
 
 #MSE-- 12.83391-- Much better than non-factor
-mean((pred2 - test$clcsHPI)^2)
+mean((pred_f - test$clcsHPI)^2)
 
 #RMSE-- 3.582445-- 1/4 of MSE-- Better but still quite different than MSE
-sqrt(mean((pred2 - test$clcsHPI)^2))
+sqrt(mean((pred_f - test$clcsHPI)^2))
 
 #MAE -- 2.403261
-mean(abs(pred2 - test$clcsHPI))
+mean(abs(pred_f - test$clcsHPI))
 
 #MAPE -- 0.0128168
-mean(abs((pred2 - test$clcsHPI)/test$clcsHPI))
+mean(abs((pred_f - test$clcsHPI)/test$clcsHPI))
 
 ```
 
 
 ## Look at heteroskedasticity plots together
 ```{r}
-plotCompare <- grid.arrange(pNoFactor, pFactor, nrow = 1)
+plot_compare <- grid.arrange(plot_no_factor + labs(title = "", subtitle = ""), 
+                             plot_factor + labs(title = "", subtitle = ""), 
+                             nrow = 1, top = textGrob("Ordinal Factoring of Month and Year Features: \n Factoring (Right) seems to look more random than no factoring (left)", gp=gpar(fontsize=15,font=3)))
 
 #save
 ggsave("compare-LR.png",
-       plot = plotCompare,
+       plot = plot_compare,
        path = "../assets/",
        width = 14.5,
        height = 7.5,

@@ -8,7 +8,7 @@ output: html_document
 
 ## Load libraries + functions
 ```{r, message = FALSE}
-source("../scripts/useful-functions.R")
+source("../scripts/useful_functions.R")
 library(tidyverse)
 library(randomForest)
 library(caret)
@@ -31,47 +31,50 @@ train_test_split(df, 0.70, 0.30)
 ```{r}
 #Fit model
 set.seed(100)
-modelForest <- randomForest(clcsHPI ~ ., data = train, ntree = 1000, importance = TRUE)
+model_forest <- randomForest(clcsHPI ~ ., data = train, ntree = 1000, importance = TRUE)
 ```
 
 ### Look at important variables
 ```{r}
-forestImpVar <- as.data.frame(importance(modelForest))
-forestImpVar$varNames <- row.names(forestImpVar)
+forest_imp_vars <- as.data.frame(importance(model_forest))
+forest_imp_vars$name <- row.names(forest_imp_vars)
 
-forestImpPlot <- forestImpVar %>%
+plot_forest_imp_vars <- forest_imp_vars %>%
   arrange(`%IncMSE`, IncNodePurity) %>%
-  mutate(Name = factor(varNames, levels = varNames)) %>%
+  mutate(Name = factor(name, levels = name)) %>%
   ggplot(aes(x = Name, y = `%IncMSE`)) + 
-  geom_segment(aes(x = Name, xend = Name, y = 0, yend = `%IncMSE`)) +
-  geom_point(aes(size = IncNodePurity), alpha = 0.8) + 
-  labs(title = "Untuned RF") + 
-  theme_light() + 
+  geom_segment(aes(x = Name, xend = Name, y = 0, yend = `%IncMSE`), color = palette[1]) +
+  geom_point(aes(size = IncNodePurity), color = palette[2], alpha = 0.8) + 
+  labs(title = "Untuned Random Forest") + 
+  theme_bw() + 
   coord_flip() + 
   theme(
+    plot.title = element_text(face = "bold"),
     legend.position = "bottom",
     panel.grid.major.y = element_blank(),
     panel.border = element_blank(),
     axis.ticks.y = element_blank(),
   )
+
+plot_forest_imp_vars
 ```
 
 ### Errors
 ```{r}
 #Predict
-predForest <- predict(modelForest, test)
+pred_forest <- predict(model_forest, test)
 
 #MSE -- 2.273641 -- super low!
-mean((predForest - test$clcsHPI)^2)
+mean((pred_forest - test$clcsHPI)^2)
 
 #RMSE-- 1.50786 -- very similar to MSE
-sqrt(mean((predForest - test$clcsHPI)^2))
+sqrt(mean((pred_forest - test$clcsHPI)^2))
 
 #MAE -- 1.107139
-mean(abs(predForest - test$clcsHPI))
+mean(abs(pred_forest - test$clcsHPI))
 
 #MAPE -- 0.006166471
-mean(abs((predForest - test$clcsHPI)/test$clcsHPI))
+mean(abs((pred_forest - test$clcsHPI)/test$clcsHPI))
 ```
 
 ## Random Forest (tuned)
@@ -80,9 +83,9 @@ mean(abs((predForest - test$clcsHPI)/test$clcsHPI))
 ```{r}
 # Algorithm Tune (tuneRF)
 set.seed(100)
-mtryBest <- tuneRF(train[,c(1,2,4:17)], train[,3], stepFactor=1.5, improve=1e-5, ntree=501)
-print(mtryBest)
-plot(mtryBest) #mtry of 5 seems to work best
+mtry_best <- tuneRF(x = train[,c(1,2,4:17)], y = train[,3], stepFactor=1.5, improve=1e-5, ntree=501)
+print(mtry_best)
+plot(mtry_best) #mtry of 7 seems to work best
 ```
 
 ### Grid search for tuning parameters using caret
@@ -90,73 +93,75 @@ plot(mtryBest) #mtry of 5 seems to work best
 control <- trainControl(method="repeatedcv", number=10, repeats=3, search="grid")
 
 set.seed(100)
-tuneGrid <- expand.grid(.mtry=c(1:8))
-forestGridSearch <- train(clcsHPI~., data=train, 
+tune_grid <- expand.grid(.mtry=c(1:8))
+forest_grid_search <- train(clcsHPI~., data=train, 
                           method="rf", metric="RMSE", 
-                          tuneGrid=tuneGrid, trControl=control)
-print(forestGridSearch)
-plot(forestGridSearch)
+                          tuneGrid=tune_grid, trControl=control,)
+print(forest_grid_search)
+plot(forest_grid_search)
 ```
 
-It looks like tuneRF and our grid search disagree on the optimal mtry. I'll go with an mtry of 8 since it is different than the original, untuned model.  
+It looks like tuneRF and our grid search disagree on the optimal mtry. I'll go with an mtry of 8 since it is close to tuneRF's value of 7 but seems to be slightly better for RMSE.  
 
 ### Fit tuned random forest
 ```{r}
 #Fit tuned model using tuneRF
 set.seed(100)
-modelForestTuned <- randomForest(clcsHPI~., data=train, 
+model_forest_tuned <- randomForest(clcsHPI~., data=train, 
                            ntree=1000, mtry=8, importance = TRUE)
 ```
 
 ### Look at important variables
 ```{r}
-forestTunedImpVar <- as.data.frame(importance(modelForestTuned))
-forestTunedImpVar$varNames <- row.names(forestTunedImpVar)
+forest_tuned_imp_vars <- as.data.frame(importance(model_forest_tuned))
+forest_tuned_imp_vars$names <- row.names(forest_tuned_imp_vars)
 
-forestTunedImpPlot <- forestTunedImpVar %>%
+plot_forest_tuned_imp_vars <- forest_tuned_imp_vars %>%
   arrange(`%IncMSE`, IncNodePurity) %>%
-  mutate(Name = factor(varNames, levels = varNames)) %>%
+  mutate(Name = factor(names, levels = names)) %>%
   ggplot(aes(x = Name, y = `%IncMSE`)) + 
-  geom_segment(aes(x = Name, xend = Name, y = 0, yend = `%IncMSE`)) +
-  geom_point(aes(size = IncNodePurity), alpha = 0.8) + 
-  labs(title = "Tuned RF") + 
-  theme_light() + 
+  geom_segment(aes(x = Name, xend = Name, y = 0, yend = `%IncMSE`), color = palette[1]) +
+  geom_point(aes(size = IncNodePurity), color = palette[2], alpha = 0.8) + 
+  labs(title = "Tuned Random Forest") + 
+  theme_bw() + 
   coord_flip() + 
   theme(
+    plot.title = element_text(face = "bold"),
     legend.position = "bottom",
     panel.grid.major.y = element_blank(),
     panel.border = element_blank(),
     axis.ticks.y = element_blank(),
-  )
+  ); plot_forest_tuned_imp_vars
 ```
 
 ## Errors
 ```{r}
 #Predict
-predForestTuned <- predict(modelForestTuned, test)
+pred_forest_tuned <- predict(model_forest_tuned, test)
 
 #MSE -- 2.228529 -- slightly better than untuned
-mean((predForestTuned - test$clcsHPI)^2)
+mean((pred_forest_tuned - test$clcsHPI)^2)
 
 #RMSE -- 1.492826
-sqrt(mean((predForestTuned - test$clcsHPI)^2))
+sqrt(mean((pred_forest_tuned - test$clcsHPI)^2))
 
 #MAE -- 1.09951
-mean(abs(predForestTuned - test$clcsHPI))
+mean(abs(pred_forest_tuned - test$clcsHPI))
 
 #MAPE -- 0.006213133
-mean(abs((predForestTuned - test$clcsHPI)/test$clcsHPI))
+mean(abs((pred_forest_tuned - test$clcsHPI)/test$clcsHPI))
 ```
 
 ## Compare variable importance between tuned and untuned forest
 ```{r}
-impPlots <- grid.arrange(forestImpPlot, forestTunedImpPlot, nrow =1)
+rf_importance_plots <- grid.arrange(plot_forest_imp_vars, plot_forest_tuned_imp_vars, nrow =1)
 
 ggsave("rf-variable-imps.png",
-       plot = impPlots,
+       plot = rf_importance_plots,
        path = "../assets/",
        width = 14.5,
        height = 7.5,
        units = "in")
 ```
+
 

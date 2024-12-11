@@ -1,0 +1,274 @@
+# File Description 
+
+This notebook is to compile all pre-processing code needed for display in my written report. I will be laying out all relative code in organized cells before converting them into standalone functions in a document called `preprocessing_functions.R` located in the `scripts` folder. I will also be re-factoring the original code to better adhere to styling standards as laid out by [Hadley Wickham](http://adv-r.had.co.nz/Style.html).
+
+## Load preliminary data
+```{r}
+library(tidyverse)
+temp <- list.files(path = "../data/raw-data/")
+
+macro_data <- read.csv(file = paste("../data/raw-data/", temp[1], sep = ""))
+pop_growth <- read.csv("../data/raw-data/Population-Growth.csv") # Yearly so won't include
+
+#Left join all other data (except growth) onto macroData
+for (i in temp[c(2:6,8)]){
+  path <- paste("../data/raw-data/", i, sep = "")
+  temp_df <- read.csv(file = path)
+  macro_data <- merge(macro_data, temp_df, by = "DATE", all.x = TRUE)
+}
+
+#Convert "DATE" column to Date type
+macro_data$DATE <- as.Date(macro_data$DATE)
+
+post_2003 <- macro_data %>%
+  filter(DATE >= "2003-01-01")
+```
+
+## Test preprocessing function
+```{r}
+source("../scripts/preprocessing_functions.R")
+preliminary_data <- load_preliminary_data()
+```
+
+## Display preliminary data as a table
+```{r}
+library(flextable)
+library(skimr)
+
+post_2003 %>%
+  skimr:: skim() %>%
+  dplyr::select(skim_type, skim_variable, n_missing, numeric.hist) %>%
+  flextable::flextable()%>%
+  set_caption(
+    caption = as_paragraph(
+      as_chunk("Table 1: Structure of Intermediate Data",
+               props = fp_text_default(font.family = "Times New Roman",
+                                       font.size = 12,
+                                       italic = TRUE)))) %>%
+  set_header_labels(values = list(
+    skim_type = "Type",
+    skim_variable = "Name",
+    n_missing = "NA values",
+    numeric.hist = "Histogram")) %>%
+  set_table_properties(layout = "autofit")%>%
+  bg(i = seq(2,ncol(post_2003),2), bg = "light grey")%>%
+  font(part = "all", fontname = "Times New Roman") %>%
+  fontsize(size = 12) %>%
+  border(i = c(1:ncol(post_2003)), border.top = fp_border_default(color = "black"))
+```
+
+## Test preprocessing function
+```{r}
+source("../scripts/preprocessing_functions.R")
+display_preliminary_table(post_2003)
+```
+
+## Graph raw GDP
+```{r}
+library(ggthemes)
+#Graph raw GDP
+min_date <- as.Date(min(post_2003$DATE))
+max_date <- as.Date(max(post_2003$DATE))
+date_limit <- c(min_date, max_date)
+
+post_2003 %>%
+  ggplot(aes(x = DATE, y = GDP.x)) +
+  geom_point(na.rm = T, cex = 1) + 
+  xlab("") +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  scale_x_date(limit = date_limit)
+```
+
+## Graph imputed GDP
+```{r}
+#Extract GDP
+GDP <- post_2003$GDP.x
+
+palette <- c("#5F0F40",
+             "#9A031E",
+             "#FB8B24",
+             "#E36414",
+             "#0F4C5C")
+
+#Impute NA values using trend
+impute_GDP <- imputeTS::na_seadec(GDP)
+post_2003$impute_GDP <- impute_GDP
+
+#Create imputed category
+post_2003$imputed <- as.factor(
+  ifelse(
+    is.na(
+      ifelse(post_2003$GDP.x ==post_2003$impute_GDP, 0, 1)
+      ) 
+    == T, 1,0))
+
+
+#Graph imputed GDP
+post_2003 %>%
+  ggplot(aes(x = DATE, y = impute_GDP, color = imputed)) + 
+  geom_point(na.rm = T, cex = 1, alpha = 0.50) + 
+  geom_line(aes(x = DATE, y = impute_GDP), na.rm = T, alpha = 1) + 
+  xlab("") +
+  theme_bw() + 
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_x_date(limit= date_limit) + 
+  scale_color_manual(values = c(palette[1], palette[3]))
+```
+
+## Test preprocessing function
+```{r}
+#Graph pre impute GDP
+source("../scripts/preprocessing_functions.R")
+
+plot_pre_imputed_GDP(post_2003)
+```
+
+## Test preprocessing function
+```{r}
+#Impute GDP
+source("../scripts/preprocessing_functions.R")
+post_2003 <- load_preliminary_data()
+post_2003$imputed_GDP <- impute_GDP(post_2003)
+post_2003 <- create_imputed_column(post_2003, "GDP.x", "imputed_GDP")
+```
+
+## Test preprocessing function
+```{r}
+#Graph impute GDP
+source("../scripts/preprocessing_functions.R")
+post_2003 <- load_preliminary_data()
+post_2003$imputed_GDP <- impute_GDP(post_2003)
+post_2003 <- create_imputed_column(post_2003, "GDP.x", "imputed_GDP")
+
+plot_imputed_GDP(post_2003, date_col = "DATE", imputed_GDP_col = "imputed_GDP",
+                 imputed_cat_col = "imputed")
+```
+
+## Remove low quality columns
+```{r}
+# Get rid of the following columns (with reasons):
+  #MORTGAGE3OUS seems to be low quality -- remove
+  #Unsure about GDP.y's sources-- remove
+  #interest_rate is a duplicate of FEDFUNDS-- remove
+  #home_price_index is a duplicate of CSUSHPISA -- remove
+  #unemployment_rate is a duplicate of UNRATE -- remove
+  #unsure of data quality of house_for_sale_or_sold -- remove
+
+#Duplicate post_2003 to keep as intermediate data
+post_2003_viz <- post_2003
+
+#List of columns to delete
+columns_to_delete <- c("MORTGAGE30US", "GDP.y", "interest_rate",
+                       "home_price_index", "unemployment_rate",
+                       "house_for_sale_or_sold")
+
+#Loop through and set to NULL
+for (i in columns_to_delete){
+  post_2003_viz2[,i] <- NULL
+}
+```
+
+No need for a separate function for this process ^
+
+## Remove GDP and imputed columns for modeling
+```{r}
+post_2003_model <- post_2003_viz
+
+#Remove GDP.x from post2003 and only leave imputeGDP, remove imputeYN
+post_2003_model$GDP.x <- NULL
+post_2003_model$imputed <- NULL
+
+```
+
+No need for a separate function for this process ^
+
+## Rename columns
+```{r}
+
+test <- post_2003_viz %>% select(-c(GDP.x, imputed))
+
+colnames(test)
+
+new_names = c("date", "urban_cpi", "fed_funds_rt", "hpi", "build_permits",
+              "const_price_idx", "delinq_rt", "house_subsidies", "income",
+              "mortgage_rt", "const_unit", "tot_house", "tot_const_spend",
+              "urban_pop", "unem_rt", "imputed_gdp")
+
+colnames(test) <- new_names
+
+#Rename columns
+post_2003_model <- post_2003_model %>% 
+  rename(date = DATE,
+         urban_cpi = CPIAUCSL,
+         fed_funds_rt = FEDFUNDS,
+         hpi = CSUSHPISA,
+         build_permits = building_permits,
+         const_price_idx = const_price_index,
+         delinq_rt = delinquency_rate, 
+         house_subsidies = housing_subsidies,
+         income = income,
+         mortgage_rt = mortgage_rate,
+         const_unit = construction_unit,
+         tot_house = total_houses,
+         tot_const_spend = total_const_spending,
+         urban_pop = urban_population,
+         unem_rate = UNRATE,
+         imputed_gdp = imputed_GDP
+         )
+```
+
+Function not needed ^
+
+# Check and display NA values
+```{r}
+#NA check -- still some NA values remaining
+colSums(is.na(post_2003_model))
+
+na_vals <- tibble:: rownames_to_column(data.frame(na_values = colSums(is.na(post_2003_model))), "variable")
+
+#Display table of NA values
+na_vals %>%
+  flextable:: flextable() %>%
+  set_caption(
+    caption = as_paragraph(
+      as_chunk("Table 2: Remaining NA Values After Processing",
+               props = fp_text_default(font.family = "Times New Roman",
+                                       font.size = 12,
+                                       italic = TRUE)))) %>%
+  set_header_labels(values = list(
+    variable = "Variable",
+    na_values = "Number of Missing Values")) %>%
+  set_table_properties(layout = "autofit") %>%
+  bg(i = seq(2, nrow(na_vals), 2), bg = "light grey")%>%
+  font(part = "all", fontname = "Times New Roman") %>%
+  fontsize(size = 12) %>%
+  border(i = c(1:nrow(na_vals)), border.top = fp_border_default(color = "black"))
+```
+
+## Test preprocessing function
+```{r}
+#Display NA values in a flextable before removing them
+source("../scripts/preprocessing_functions.R")
+display_intermediate_nas(post_2003_model)
+```
+
+## Remove NAs and extract month and date
+```{r}
+#NAs are low enough that I will just remove them
+post_2003_clean <- na.omit(post_2003_model)
+
+#Add date features -- don't need day since monthly data
+post_2003_clean$year <- lubridate::year(post_2003_clean$date)
+post_2003_clean$month <- lubridate::month(post_2003_clean$date)
+
+
+post_2003_clean$year <- as.Date(post_2003_clean$year)
+```
+
+## Test preprocessing function
+```{r}
+source("../scripts/preprocessing_functions.R")
+clean_data <- final_preprocessing(intermediate_data = post_2003_model)
+```
+

@@ -8,7 +8,7 @@ output: html_document
 
 ## Load libraries and functions
 ```{r, message = FALSE}
-source("../scripts/useful-functions.R")
+source("../scripts/useful_functions.R")
 library(tidyverse)
 #Decision tree + tree plot
 library(rpart)
@@ -30,9 +30,9 @@ train_test_split(df, 0.70, 0.30)
 ```{r}
 #Create and graph full tree and check how error decreases with increase in cp
 set.seed(100)
-modelTreeFull <- rpart(clcsHPI~., data = train, method = "anova",
+model_tree_full <- rpart(clcsHPI~., data = train, method = "anova",
                    control = list(cp = 0, xval = 16))
-plotcp(modelTreeFull, upper = c("none"))
+plotcp(model_tree_full, upper = c("none"), col = palette[2])
 ```
 
 ## Pruned Tree
@@ -41,13 +41,13 @@ plotcp(modelTreeFull, upper = c("none"))
 ```{r}
 #Create tree
 set.seed(100)
-modelTree <- rpart(clcsHPI~.,data=train, method = "anova")
+model_tree <- rpart(clcsHPI~.,data=train, method = "anova")
 
 #Visualize regression tree
-rpart.plot(modelTree)
+rpart.plot(model_tree, box.palette = year_palette[c(21,15)])
 
 #Check cp-size trade off -- maxdepth = 6
-plotcp(modelTree)
+plotcp(model_tree, col = palette[2])
 
 ```
 
@@ -55,42 +55,44 @@ plotcp(modelTree)
 ### Perform grid search for optimal CP and minsplit
 ```{r}
 #Perform grid search for optimal cp and minsplit
-gridTree <- expand.grid(
+grid_tree <- expand.grid(
   minsplit = seq(5,20,1),
   maxdepth = seq(6,12,1)
 )
 
 #Iterate through grid and generate a tree for each combination of hyperparameter
-modelListTree <- list()
+model_list_tree <- list()
 
-for (i in 1:nrow(gridTree)){
-  minsplit <- gridTree$minsplit[i]
-  maxdepth <- gridTree$maxdepth[i]
+for (i in 1:nrow(grid_tree)){
+  minsplit <- grid_tree$minsplit[i]
+  maxdepth <- grid_tree$maxdepth[i]
   
   set.seed(100)
-  modelListTree[[i]]<- rpart(clcsHPI~., data = train, method = "anova",
+  model_list_tree[[i]]<- rpart(clcsHPI~., data = train, method = "anova",
                          control = list(minsplit = minsplit, maxdepth = maxdepth))
 }
 
 #Extract minimum error associated with ccp value of each model:
 
 #Optimal cp function
-getBestCP <- function(y){
+get_best_cp <- function(y){
   min <- which.min(y$cptable[,"xerror"])
   cp <- y$cptable[min,"CP"]
+  return (cp)
 }
 
 #Minimum error function
-getMinError <- function(y){
+get_min_error <- function(y){
   min <- which.min(y$cptable[,"xerror"])
   xerror <- y$cptable[min,"xerror"]
+  return (xerror)
 }
 
 #Find optimal values
-gridTree %>%
+grid_tree %>%
   mutate(
-    cp = purrr::map_dbl(modelListTree, getBestCP),
-    error = purrr:: map_dbl(modelListTree, getMinError)
+    cp = purrr::map_dbl(model_list_tree, get_best_cp),
+    error = purrr:: map_dbl(model_list_tree, get_min_error)
   ) %>%
   arrange(error) %>%
   top_n(-5, wt = error) #minsplit = 5, cp = 0.01
@@ -100,28 +102,28 @@ gridTree %>%
 ```{r}
 #Plot optimal tree
 set.seed(100)
-modelTreeOpt <- rpart(clcsHPI ~ ., data = train, method = "anova",
+model_tree_optimal <- rpart(clcsHPI ~ ., data = train, method = "anova",
                           control = list(minsplit = 5, maxdepth = 6, cp = 0.01))
 
 #Visualize optimal regression tree
-rpart.plot(modelTreeOpt) 
+rpart.plot(model_tree_optimal, box.palette = year_palette[c(21,15)]) 
 ```
 
 ### Errors
 ```{r}
 #Predict with pruned tree
-predTree <- predict(modelTreeOpt, test)
+pred_tree <- predict(model_tree_optimal, test)
 
 #MSE -- 59.4734 -- pretty bad
-mean((predTree-test$clcsHPI)^2)
+mean((pred_tree-test$clcsHPI)^2)
 
 #RMSE -- 7.7119 -- 1/8 of MSE -- model is making some big errors
-sqrt(mean((predTree-test$clcsHPI)^2))
+sqrt(mean((pred_tree-test$clcsHPI)^2))
 
 #MAE -- 6.289486
-mean(abs(predTree - test$clcsHPI))
+mean(abs(pred_tree - test$clcsHPI))
 
 #MAPE -- 0.03404775
-mean(abs((predTree - test$clcsHPI)/test$clcsHPI))
+mean(abs((pred_tree - test$clcsHPI)/test$clcsHPI))
 ```
 

@@ -1,0 +1,318 @@
+# File Description 
+
+This notebook is to compile all visualization code needed for display in my written report. I will be laying out all relative code in organized cells before converting them into standalone functions in a document called `preprocessing_functions.R` located in the `scripts` folder. I will also be re-factoring the original code to better adhere to styling standards as laid out by [Hadley Wickham](http://adv-r.had.co.nz/Style.html).
+
+## Globally-referenced palette
+```{r}
+palette <- c("#5F0F40",
+             "#9A031E",
+             "#FB8B24",
+             "#E36414",
+             "#0F4C5C")
+```
+
+## Libraries
+```{r}
+library(tidyverse)
+library(gridExtra)
+library(grid)
+library(ggthemes)
+library(ggcorrplot)
+library(lubridate)
+```
+
+## Reading in visualization data
+```{r}
+# Load data
+viz_data <- read.csv("../data/cleaned/visualizationData.csv") 
+#Leave NAs in for GDP.x and Imputed GDP comparison
+
+# Assert types
+viz_data$DATE <- as.Date(viz_data$DATE)
+viz_data$year <- lubridate::year(viz_data$DATE)
+viz_data$month <- lubridate::month(viz_data$DATE)
+```
+
+## Test visualization functions
+```{r}
+source("../scripts/visualization_functions.R")
+v_data <- load_viz_data()
+```
+
+## Visualize GDP Imputation
+```{r}
+p1 <- viz_data %>%
+  ggplot(aes(x=DATE, y=GDP.x)) +
+  geom_point(cex = 1) + 
+  geom_smooth(se = F, color = palette[3]) + 
+  geom_vline(xintercept = as.Date("2020-03-15"),
+             linetype = 2, linewidth = 0.50, color = palette[2]) +
+  geom_vline(xintercept = as.Date("2008-09-15"),
+             linetype = 2, linewidth = 0.50, color = palette[2]) + 
+  annotate(x = ymd("2020-03-15"), y = +Inf, label = "COVID-19 Starts", vjust = 2, geom = "label") +
+  annotate(x = ymd("2008-09-15"), y = +Inf, label = "Peak of Financial Crisis", vjust = 2, geom = "label") +
+  labs(x = "", y = "GDP (Quarterly)",
+       title = "US GDP", 
+       subtitle = "Reported quarterly (smoothed estimate in orange)") + 
+  theme_bw() +
+  theme(plot.title = element_text(face = "bold", size = 25, hjust = 0),
+        plot.subtitle = element_text(face = "italic", size = 10, hjust = 0))
+
+p2 <- viz_data %>%
+  ggplot(aes(x=DATE, y=imputeGDP)) +
+  geom_point(cex = 1) + 
+  geom_vline(xintercept = as.Date("2020-03-15"),
+             linetype = 2, linewidth = 0.50, color = palette[2]) +
+  geom_vline(xintercept = as.Date("2008-09-15"),
+             linetype = 2, linewidth = 0.50, color = palette[2]) + 
+  annotate(x = ymd("2020-03-15"), y = +Inf, label = "COVID-19 Starts", vjust = 2, geom = "label") +
+  annotate(x = ymd("2008-09-15"), y = +Inf, label = "Peak of Financial Crisis", vjust = 2, geom = "label") +
+  labs(x = "", y = "GDP (Monthly Imputed from Quarterly Values)",
+       title = "US GDP", 
+       subtitle = "Monthly (Imputed)") + 
+  theme_bw() +
+  theme(plot.title = element_text(face = "bold", size = 25, hjust = 0),
+        plot.subtitle = element_text(face = "italic", size = 10, hjust = 0))
+
+p3 <- gridExtra::grid.arrange(p1, p2, nrow = 1)
+```
+
+## Test visualization functions
+```{r}
+source("../scripts/visualization_functions.R")
+#Using vdata loaded in last test
+gdp_plot <- plot_GDP_side_by_side(v_data)
+```
+
+## Plot hpi values
+```{r}
+p4 <- viz_data %>%
+  ggplot(aes(x = DATE, y = CSUSHPISA, color = FEDFUNDS)) + 
+  geom_line(aes(linewidth = FEDFUNDS), lineend = "round") + 
+  geom_vline(xintercept = as.Date("2020-03-15"),
+           linetype = 2, linewidth = 0.50, color = palette[2]) +
+  geom_vline(xintercept = as.Date("2008-09-15"),
+             linetype = 2, linewidth = 0.50, color = palette[2]) + 
+  annotate(x = ymd("2020-03-15"), y = +Inf, 
+           label = "COVID-19 Starts", vjust = 2, geom = "label") +
+  annotate(x = ymd("2008-09-15"), y = +Inf, 
+           label = "Peak of Financial Crisis", vjust = 2, geom = "label") +
+  labs(x = "", y = "National Home Price Index",
+       title = "S&P CoreLogic Case-Shiller U.S. National Home Price Index over Time", 
+       subtitle = "Changes in Federal Funds Rate shown using color and size") + 
+  theme_bw() +
+  scale_color_gradient(name = "Federal Funds Rate",high = palette[2], low = palette[4]) +
+  scale_linewidth(name = "Federal Funds Rate", range = c(0.5,2.5)) +
+  guides(color=guide_legend(override.aes=list(fill=NA))) + 
+  theme(plot.title = element_text(face = "bold", size = 25, hjust = 0),
+        plot.subtitle = element_text(face = "italic", size = 10, hjust = 0),
+        legend.key = element_rect(fill = "transparent"),
+        legend.title = element_text(size = 10, face = "bold"),
+        legend.background = element_rect(linewidth = 0, linetype = "blank"))
+
+p4
+```
+
+## Test visualization functions
+```{r}
+source("../scripts/visualization_functions.R")
+#Use vdata loaded from previous test
+plot_hpi_values(v_data)
+```
+
+## Line plot matrix 
+```{r}
+plots <- list()
+ind = 1
+for(i in 1: ncol(viz_data)){
+  if(i == 1){
+    print("pass")
+  }else if(i == 4){
+    plots[[ind]] <- ggplot(viz_data, aes_string(x = viz_data[,1], y = viz_data[,i])) +
+      geom_point() + 
+      labs(x = "", y = colnames(viz_data)[i]) +   
+      geom_vline(xintercept = as.Date("2020-03-15"),
+                 linetype = 2, linewidth = 0.50, color = palette[2]) +
+      geom_vline(xintercept = as.Date("2008-09-15"),
+                 linetype = 2, linewidth = 0.50, color = palette[2]) + 
+      annotate(x = ymd("2020-03-15"), y = +Inf, 
+               label = "C19", vjust = 2, geom = "label") +
+      annotate(x = ymd("2008-09-15"), y = +Inf, 
+               label = "Fin. Crisis", vjust = 2, geom = "label") + 
+      theme_bw()
+    ind = ind + 1
+  }else if(i == 18){
+    print("pass")
+  }
+  else{
+    plots[[ind]] <- ggplot(viz_data, aes_string(x = viz_data[,1], y = viz_data[,i])) +
+      geom_line() + 
+      labs(x = "", y = colnames(viz_data)[i]) +
+      geom_vline(xintercept = as.Date("2020-03-15"),
+                 linetype = 2, linewidth = 0.50, color = palette[2]) +
+      geom_vline(xintercept = as.Date("2008-09-15"),
+                 linetype = 2, linewidth = 0.50, color = palette[2]) + 
+      annotate(x = ymd("2020-03-15"), y = +Inf, 
+               label = "C19", vjust = 2, geom = "label") +
+      annotate(x = ymd("2008-09-15"), y = +Inf, 
+               label = "Fin. Crisis", vjust = 2, geom = "label") + 
+      theme_bw()
+    ind = ind + 1
+  }
+}
+
+p5 <- grid.arrange(grobs = plots, nrow = 4, 
+                   top = textGrob(
+                     substitute(
+                       paste(
+                         bold("Numeric Variables by Year")))))
+```
+
+##Test visualization functions
+```{r}
+source("../scripts/visualization_functions.R")
+#use v_data from previous test
+grid <- plot_line_matrix(v_data)
+```
+
+## HPI and CPI over time
+```{r, warning=FALSE}
+viz_data %>%
+  select(year, CSUSHPISA, CPIAUCSL) %>%
+  na.omit() %>%
+  group_by(year) %>%
+  summarize(avgHPI = mean(CSUSHPISA),
+            avgCPI = mean(CPIAUCSL)) %>%
+  ggplot() +
+  geom_bar(aes(x = year, y = avgHPI, 
+               fill = factor(year, order = TRUE, levels = c(unique(viz_data$year)))), 
+           stat = "identity") +
+  scale_fill_manual(values = c("#5F0F40","#67153F","#6F1B3D",
+                               "#76223C","#7E283A","#862E39",
+                               "#8E3438","#963A36","#9D4135",
+                               "#A54733","#AD4D32","#B55331",
+                               "#BD592F","#C4602E","#CC662C",
+                               "#D46C2B","#DC722A","#E47828",
+                               "#EB7F27","#F38525","#FB8B24")) +
+  geom_line(aes(x = year, y = avgCPI, color = year)) + 
+  scale_y_continuous( name = "Average HPI", 
+                      sec.axis = sec_axis(trans = ~., name = "Average CPI")) + 
+  labs(x = "", y = "Average HPI", fill = "Year") + 
+  scale_color_gradient(low = palette[1], high = palette[4]) + 
+  guides(color = "none", fill = guide_legend(nrow = 10)) + 
+  theme_bw() + 
+  theme(axis.title.y= element_text(size = 7))
+```
+
+```{r}
+viz_data %>%
+      select(year, CSUSHPISA, CPIAUCSL) %>%
+      na.omit() %>%
+      group_by(year) %>%
+      summarize(avgHPI = mean(CSUSHPISA),
+                avgCPI = mean(CPIAUCSL))
+```
+
+## Test visualization functions
+```{r}
+source("../scripts/visualization_functions.R")
+#Use v_data from previous tests
+hpi_cpi_plot <- plot_hpi_cpi(v_data); hpi_cpi_plot
+```
+
+## Correlation plot
+```{r}
+numeric_vars <- c()
+
+for (i in colnames(viz_data)){
+  
+  if(i == "imputedYN"){
+    next
+    
+  }else if (is.numeric(viz_data[,i]) == TRUE){
+    
+    numeric_vars <- append(numeric_vars, i)
+  }
+}
+
+correlations <- cor(na.omit(viz_data[,c(numeric_vars)]))
+
+corr_plot <- ggcorrplot(corr =  correlations,
+                    colors = c(palette[1], palette[2], palette[3]),
+                    ggtheme = "theme_bw", title = "Correlations", 
+                    tl.cex = 8, legend.title = "") +
+  theme(plot.title = element_text(face = "bold"))
+
+corr_plot
+```
+
+## Test visualization functions
+```{r}
+source("../scripts/visualization_functions.R")
+#Use v_data from previous test
+plot_correlations(v_data)
+```
+
+## Correlation tables
+```{r}
+library(GGally)
+library(flextable)
+
+correlations_df <- data.frame(correlations)
+
+imp_vars <- correlations_df %>% 
+  select(CSUSHPISA) %>% 
+  filter(abs(CSUSHPISA) > 0.50)
+
+imp_vars <- imp_vars %>%
+  rename(hpi = CSUSHPISA) %>%
+  mutate(name = rownames(imp_vars)) %>%
+  relocate(name)
+```
+
+## Test visualization functions
+```{r}
+imp_varsss <- filter_imp_vars(v_data)
+```
+
+## Scatter plot matrix
+```{r}
+filtered_data <- viz_data[,c(unique(imp_vars$name))]
+
+plots <- list()
+ind = 1
+hpi_idx <- which(colnames(filtered_data) == "CSUSHPISA")
+
+for (i in 1:ncol(filtered_data)){
+  plots[[ind]] <- ggplot(filtered_data, 
+                         aes_string(x = filtered_data[,i], 
+                                    y = filtered_data[,hpi_idx])) +
+    geom_point(na.rm = TRUE) + 
+    geom_smooth(na.rm = TRUE, se = FALSE, color = palette[3], 
+                formula = y ~ x, method = "loess", alpha = 0.50) +
+    labs(x = colnames(filtered_data)[i], y = "HPI") + 
+    theme_bw()
+  
+    ind = ind + 1
+}
+
+grid.arrange(grobs = plots, nrow = 4, 
+                   top = textGrob(
+                     substitute(
+                       paste(
+                         bold("Variables with absolute correlation > 0.50 with HPI")))))
+```
+
+## Test visualization functions
+```{r}
+source("../scripts/visualization_functions.R")
+plot_imp_line_matrix(viz_data = v_data, imp_vars = imp_varsss, hpi_col = "CSUSHPISA")
+```
+
+
+
+
+
+
+
+

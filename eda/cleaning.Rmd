@@ -4,7 +4,7 @@ author: "Rohan Krishnan"
 date: "2024-07-25"
 output: pdf_document
 ---
-```{r}
+```{r, message=}
 #Load libraries
 library(dplyr)
 library(tidyverse)
@@ -39,6 +39,7 @@ df$DATE <- as.Date(df$DATE)
 post2003 <- df %>%
   filter(DATE >= "2003-01-01")
 
+post2003 %>% write.csv('../data/cleaned/post2003.csv', row.names=F)
 #Look at data
 post2003 %>% glimpse() #GDP.x appears to be reported quarterly -- need to impute intermediate values-- pulled from FRED
 #Some duplicate variables, I'll use the ones with fewer NA values

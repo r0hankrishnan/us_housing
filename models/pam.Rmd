@@ -8,7 +8,7 @@ output: html_document
 
 ## Load libraries
 ```{r, message = FALSE}
-source("../scripts/useful-functions.R")
+source("../scripts/useful_functions.R")
 library(factoextra)
 library(cluster)
 library(tidyverse)
@@ -21,7 +21,7 @@ df <- read.csv("../data/modelling/modelling.csv")
 model_df_preprocess(df)
 
 #Scale df
-dfScale <- df %>%
+df_scaled <- df %>%
   select(-clcsHPI, -year, -month) %>%
   scale()
 ```
@@ -31,47 +31,75 @@ dfScale <- df %>%
 ### Look at silhouette scores, gap statistics, and elbow plot for k means
 ```{r}
 #Visualize silhouette scores -- 3
-fviz_nbclust(dfScale, pam, method = "silhouette") +
+fviz_nbclust(df_scaled, pam, method = "silhouette",
+             linecolor = palette[2]) +
   labs(title = "Silhouette Scores") +
-  theme_minimal()
+  theme_bw() + 
+  scale_color_manual(values = palette[1]) + 
+  theme(plot.title = element_text(face = "bold"))
+
 
 #Visualize gap stat -- 10
-fviz_nbclust(dfScale, pam, method = "gap_stat") +
-  labs(title = "Gap Stat") + 
-  theme_minimal()
+fviz_nbclust(df_scaled, pam, method = "gap_stat",
+             verbose = FALSE, linecolor = palette[2]) +
+  labs(title = "Gap Statistics") +
+  theme_bw() + 
+  scale_color_manual(values = palette[1]) + 
+  theme(plot.title = element_text(face = "bold"))
 
 #Visualize elbow plot -- 3
-fviz_nbclust(dfScale, pam, method = "wss") + 
-  labs(title = "Elbow Plot") + 
-  theme_minimal()
+fviz_nbclust(df_scaled, pam, method = "wss",
+             linecolor = palette[2]) +
+  labs(title = "Elbow Plot") +
+  theme_bw() + 
+  scale_color_manual(values = palette[1]) + 
+  theme(plot.title = element_text(face = "bold"))
 ```
 
 ### Fit PAM model
 ```{r}
 #Fit model-- use 3 clusters since silhouette and elbow plot agree
-modelPAM <- pam(dfScale, stand = T, metric = "manhattan", k = 3)
-print(modelPAM)
+model_pam <- pam(df_scaled, stand = T, metric = "manhattan", k = 3)
+print(model_pam)
 ```
 
 ### Visualize clustering
 ```{r}
 #Visualize PAM clustering
-fviz_cluster(modelPAM, main = "PAM Clustering",
+fviz_cluster(model_pam, main = "PAM Clustering",
              labelsize = 0) + 
-  theme_minimal()
+  scale_color_manual("Cluster", values = year_palette[c(1, 9, 21)]) + 
+  scale_fill_manual("Cluster", values = year_palette[c(1, 9, 21)]) +  
+  scale_shape_manual('Cluster', values=c(22, 23, 24)) + 
+  theme_bw() + 
+  theme(plot.title = element_text(face = "bold"))
+
+
 
 #Compare hpi across clusters
-dfPAM<-cbind(df, cluster=modelPAM$clustering)
-dfPAM$cluster <-as.factor(dfPAM$cluster)
+df_pam<-cbind(df, cluster=model_pam$clustering)
+df_pam$cluster <-as.factor(df_pam$cluster)
 
 #Plot hpi boxplots separated by cluster
-ggplot(dfPAM, aes(x=cluster,y=clcsHPI, color = cluster)) + 
+df_pam %>%
+  ggplot(aes(x=cluster,y=clcsHPI, color = cluster)) + 
   geom_boxplot() + 
-  labs(title="Hpi Grouped by PAM Clustering")
+  labs(title="HPI Grouped by PAM Clustering",
+       x = "Cluster", y = "U.S. HPI",
+       color = "PAM Cluster") + 
+  scale_color_manual(values = year_palette[c(1, 9, 21)]) + 
+  theme_bw() + 
+  theme(plot.title = element_text(face = "bold"))
 
-dfPAM %>%
+df_pam %>%
   group_by(cluster) %>%
   summarize(meanHPI = mean(clcsHPI)) %>%
   ggplot(aes(x = cluster , y = meanHPI, fill = cluster)) + 
-  geom_bar(stat = "identity")
+  geom_bar(stat = "identity") + 
+  labs(title = "Average U.S. HPI by Cluster (PAM)", 
+       x = "Cluster", y = "Average U.S. HPI",
+       fill = "PAM Cluster") + 
+  scale_fill_manual(values = year_palette[c(1, 9, 21)]) + 
+  theme_bw() + 
+  theme(plot.title = element_text(face = "bold"))
 ```

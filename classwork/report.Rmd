@@ -1,0 +1,698 @@
+---
+title: "Analysis of the Dynamics of the U.S. Housing Price Index"
+subtitle: "Refactored Code and Workflow of STAT 1261 Final Project"
+author: "Rohan Krishnan"
+date: "2023-12-11"
+output: pdf_document
+---
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+# Setup code
+source("../scripts/useful_functions.R")
+source("../scripts/preprocessing_functions.R")
+source("../scripts/visualization_functions.R")
+source("../scripts/lr_functions.R")
+source("../scripts/bootstrap_reg_functions.R")
+source("../scripts/lin_mod_select_functions.R")
+source("../scripts/d_tree_functions.R")
+source("../scripts/rf_functions.R")
+source("../scripts/clustering_functions.R")
+
+
+load_preprocessing_libraries()
+load_viz_libraries()
+load_lr_libraries()
+load_boostrap_reg_libraries()
+load_lin_mod_select_libraries()
+load_dt_libraries()
+load_rf_libraries()
+load_clustering_libraries()
+
+```
+
+## Introduction
+
+As of November 2023, the U.S. housing market is valued at 47 trillion USD (Rosen, 2023). With an average year-over-year growth rate of 5.5%, the U.S. housing market is set to remain a key factor in calculating the overall welfare of the nation's economy (CEIC Data, 2023). On a consumer level, home ownership remains tied to the "American Dream", as working class citizens across the country strive towards purchasing, selling, or renting homes. Investors and economists rely on the Housing Price Index (referred to as the HPI from this point onwards) as a key metric for assessing investment feasibility and for determining national economic forecasts.
+
+The HPI is a comprehensive macroeconomic measure that monitors the price fluctuations of **single-family** homes nationwide. It also serves as an analytical tool for approximating the changes in the rates of mortgage defaults, prepayments, and housing affordability (Liberto, 2023). The Federal Housing Finance Agency compiles this data by reviewing single family housing mortgages purchased or securitized by Fannie Mac or Freddie Mac. My primary goal for this statistical analysis project was to find an economic data set that I could explore to better understand the U.S. economy. 
+ 
+
+
+## Research Question
+
+The primary goal of this project is to examine how the HPI is affected by other macroeconomic factors. By examining how other commonly tracked measures affect the HPI, I aim to better understand the dynamics between macroeconomic measures and will create a useful basis for more focused research in the future. An improved understanding of the relationships may also prove useful in better understanding real estate and broader housing market dynamics. 
+
+In summary, this project aims to establish quantitative measures of the relationships between common macroeconomic measures and the HPI to better inform the direction of future research. Below is the main research question I aimed to answer for as part of the final project requirements:
+
+- What variables are most useful in predicting the HPI?
+
+  1. Which machine learning model best predicts the HPI given new data?
+
+
+## Statement of Purpose
+
+In terms of a research-based objective, I created this project with the goal to broaden my knowledge about the economy, consumer behavior, and investment sectors associated within the U.S. housing market. Most importantly, however, this project aims to apply a wide range of machine learning techniques and provide statistical justifications and explanations for their use.
+
+
+# Methodology
+
+This section will discuss my data sourcing, ingestion, and cleaning process.
+
+## Data Collection
+
+To recreate the data set I used for my original STAT 1261 final project, I used two data sets of U.S. HPI influences from Kaggle. By comparing the values of variables between the two data sets and looking at the documentation of each, I chose only the variables whose values I could verify as accurate. 
+
+
+## Data Set(s)
+
+To create a unified data frame in R, I left-joined each individual csv file on `house_data.csv`. I chose `house_data.csv` as my base file because it only went back until 2003, unlike the other files that had data extending back to the 1970s. After left-joining the data into one data frame, I converted the `DATE` column to a “Date” type and used `dplyr` to filter the data into a data set that only contained measures taken after January 1st, 2003. 
+
+
+```{r}
+
+raw_data <- load_raw_data()
+basic_describe_data(data = raw_data, data_name = "raw")
+
+preliminary_data <- load_preliminary_data()
+basic_describe_data(data = preliminary_data, data_name = "preliminary")
+
+```
+
+
+As is seen above, the original raw data had 921 observations but over 12,000 missing values due to the mismatch in reporting time frames. After filtering for measures after 2003, the data set is cut down to only 249 observations, a 72% reduction in usable observations, and only 519 missing values. Unfortunately, because the measures in housing_data.csv abruptly stopped in 2003, it was not feasible to perform imputation to maintain data volume.
+
+
+## Variables
+
+As the main focus of this project is to explore the U.S. HPI, we have the following features and target variable(s):
+
+
+| Variable Name          | Definition                                                                     | Target or Feature? |
+|------------------------|--------------------------------------------------------------------------------|--------------------|
+| CPIAUSCL               | U.S. Consumer Price Index                                                      | Feature            |
+| FEDFUNDS               | U.S. Federal Funds rate                                                        | Feature            |
+| GDP.x                  | U.S. GDP reported quarterly                                                    | Feature            |
+| **CSUSHPISA**          | **U.S. Housing Price Index**                                                   | **Target**         |
+| building_permits       | Number of new building permits in the U.S.                                     | Feature            |
+| const_price_index      | U.S. Construction Price Index                                                  | Feature            |
+| delinquency_rate       | U.S. percentage of loans overdue by more than 30 days                          | Feature            |
+| GDP.y                  | (Unreliable) U.S. GDP reported monthly                                         | NA                 |
+| house_for_sale_or_sold | (Unreliable) Number of houses for sale or sold in the U.S. (?)                 | NA.                |
+| housing_subsidies      | Value of U.S. housing subsidies                                                | Feature            |
+| income                 | Median U.S. household income                                                   | Feature            |
+| interest_rate          | (Unreliable) Value of U.S. interest rates                                      | NA                 |
+| mortgage_rate          | Value of U.S. home mortgage rates                                              | Feature            |
+| construction_unit      | Number of new construction units in the U.S.                                   | Feature            |
+| total_houses           | Total number of houses in the U.S.                                             | Feature            |
+| total_const_spending   | Total U.S. construction spending                                               | Feature            |
+| unemployment_rate      | (Unreliable) U.S. unemployment rate                                            | NA                 |
+| urban_population       | U.S. urban population (millions)                                               | Feature            |
+| home_price_index       | (Unreliable) Measure of U.S. Housing Price Index                               | NA                 |
+| MORTGAGE30US           | (Unreliable) The average interest rates on mortgage loans in the United States | NA                 |
+| UNRATE                 | U.S. unemployment rate                                                         | Feature                 |
+
+
+From the above table, it’s clear that there are several duplicate variables whose values do not match. The variables marked “unreliable” are variables whose values I could verify using FRED data. As I move through the data cleaning process, I will remove columns which have unreliable information or have too large a number of missing values.
+
+Below is a summary table of the preliminary data. This data is what is output after joining all csv files and filtering for values after 2003.
+
+
+```{r, results = 'asis', message = FALSE}
+
+#Prelim data summary + NA by columns
+stargazer(preliminary_data, summary = TRUE, type = "latex", 
+          title = "Preliminary Data Summary",
+          header = FALSE, no.space = TRUE)
+
+```
+\newpage
+
+
+Some important points to note include the vastly different scaling between variables. For example, `GDP.x` seems to be measured in millions while `FEDFUNDS` is a measure of interest rate with a maximum value of 5.330. Also, `GDP.x` has noticeable fewer observations than the rest of the data, at only 83. This is because it is pulled directly from the FRED database, which only reports quarterly values. Since the data is monthly, there are 8 missing values for `GDP.x` per year. `MORTGAGE30US` seems to be even worse, with only 33 known values. 
+
+Below is a table showing the number of missing values per column.
+
+
+```{r, results = 'asis'}
+prelim_na_vals <- extract_na_per_column(preliminary_data)
+
+prelim_na_vals %>% rename(Feature = variable,
+                          "NA Values" = na_values) %>%
+  stargazer(type = "latex", summary = FALSE, flip = FALSE,
+          title = "Preliminary Data NA Values by Column",
+          header = FALSE, no.space = TRUE)
+```
+\newpage
+
+
+The two clear outliers in terms of missing values are `GDP.x` and `MORTGAGE30US.` I will explore methods of dealing with these two variables in the code below.
+
+First, I will handle the missing data in the `GDP.x` column. As noted above, the St. Louis Federal Reserve (FRED) only reports real GDP on a quarterly basis, meaning the GDP column had missing values for 8 out of the 12 months for each year. Because there were accurate measures of GDP every 4 months, I decided to use seasonal decomposition to impute its intermediate values. In this method, the time series is decomposed into its trend, and seasonal components; then, the intermediate values are imputed using only the trend; finally, the seasonality is added back into the data. This allows for imputed values that smoothly follow the trend of the time series while also adhering to any seasonality present. I also made an indicator column to keep track of which values came from the data and which were imputed.
+
+
+```{r}
+
+#Create imputed GDP column
+im_preliminary_data <- preliminary_data
+im_preliminary_data$imputed_GDP <- impute_GDP(preliminary_data = preliminary_data)
+
+im_preliminary_data <- create_imputed_column(
+  imputed_preliminary_data = im_preliminary_data, 
+  "GDP.x", "imputed_GDP")
+
+```
+
+
+After imputing the GDP values, I worked on removing low-quality and duplicate columns. Above is the code I used, highlighting which columns I chose to remove. Because I could not verify the values in `MORTGAGE30US` and because it had so many missing values, I decided to remove it completely. I also removed duplicate columns for the federal funds rate, HPI, unemployment rate, and the `house_for_sale_or_sold` column, whose validity I could not properly confirm. After imputation and trimming, I was left with a data set of 18 columns compared to the original’s 24. This data set was then saved for further use in the data visualization section.
+
+
+```{r}
+
+## This is the data saved for visualization
+#Remove low quality columns
+#Duplicate post_2003 to keep as intermediate data
+trimmed_preliminary_data <- im_preliminary_data
+
+#List of columns to delete
+columns_to_delete <- c("MORTGAGE30US", "GDP.y", "interest_rate",
+                       "home_price_index", "unemployment_rate",
+                       "house_for_sale_or_sold")
+
+#Loop through and set to NULL
+for (i in columns_to_delete){
+  trimmed_preliminary_data[,i] <- NULL
+}
+
+write(paste("Imputed data had", ncol(im_preliminary_data), "columns.",
+      "\nTrimmed data has", ncol(trimmed_preliminary_data), 
+      "columns"), stdout())
+
+```
+
+
+At this point, I worked on creating different data sets for different parts of the modeling process. First, I removed GDP.x and the imputed indicator column to create a data set with only the variables that would be used for modeling. 
+
+
+```{r}
+## This is the data saved for modeling.
+# Remove GDP.x and imputed columns to create modeling data set.
+modeling_preliminary_data <- trimmed_preliminary_data
+
+#Remove GDP.x from post2003 and only leave imputeGDP, remove imputeYN
+modeling_preliminary_data$GDP.x <- NULL
+modeling_preliminary_data$imputed <- NULL
+
+write(paste("The visualization data had", ncol(trimmed_preliminary_data), 
+            "columns.", "\nThe modeling data has", 
+            ncol(modeling_preliminary_data), "columns"), stdout())
+```
+
+
+I then renamed the data for ease of reading.
+
+
+```{r}
+
+#Rename variables
+renamed_preliminary_data <- modeling_preliminary_data
+
+new_names = c("date", "urban_cpi", "fed_funds_rt", "hpi", "build_permits",
+              "const_price_idx", "delinq_rt", "house_subsidies", "income",
+              "mortgage_rt", "const_unit", "tot_house", "tot_const_spend",
+              "urban_pop", "unem_rt", "imputed_gdp")
+
+colnames(renamed_preliminary_data) <- new_names
+
+```
+
+
+After all of the above preprocessing, I was left with the following missing values: 
+
+
+```{r, results = 'asis'}
+
+# Extract NA values & display in stargazer table
+final_prelim_na_vals <- extract_na_per_column(renamed_preliminary_data)
+
+final_prelim_na_vals %>% rename(Feature = variable,
+                                "NA Values" = na_values) %>%
+  stargazer(type = "latex", summary = FALSE, flip = FALSE,
+          title = "NA Values by Column After Preprocessing",
+          header = FALSE, no.space = TRUE)
+
+```
+
+
+After renaming the remaining variables for ease of use and examining the remaining missing values, I decided that the were few enough missing values that it was reasonable to simply drop the problem rows. I then extracted the month and year from the `DATE` column to use in my analyses before saving the data frame to `./data/modelling/` as `modelling.csv`.
+
+
+```{r}
+
+# Remove NAs, extract month and year
+cleaned_data <- final_preprocessing(intermediate_data = renamed_preliminary_data)
+
+```
+
+
+
+## Modeling and Analysis Plan
+
+### Description of Analysis
+
+### Analysis Plan
+
+# Results
+
+## Exploratory Data Analysis
+
+## Descriptive Statistics
+```{r, results = 'asis', message = FALSE, warning = FALSE}
+
+#Cleaned data summary stats
+stargazer(cleaned_data, type = "latex", summary = TRUE, 
+          flip = FALSE,  title = "Final Cleaned Data Summary",
+          header = FALSE, no.space = TRUE)
+
+```
+
+
+## Data Visualization
+
+```{r}
+
+#Pre vs post imputation GDP
+
+v_data <- load_viz_data()
+display <- plot_GDP_side_by_side(viz_data = v_data)
+
+
+```
+
+
+
+```{r}
+plot_hpi_values(viz_data = cleaned_data, date_col = "date", hpi_col = "hpi", 
+                ff_rt_col = "fed_funds_rt")
+```
+
+```{r, eval = FALSE, message = FALSE, warning = FALSE}
+## Line plot matrix
+plot_line_matrix(v_data)
+```
+
+![Numeric Variables by Year](../assets/vars-by-year.png)\
+
+```{r}
+## Plot hpi and cpi over time
+plot_hpi_cpi(v_data)
+```
+
+
+## Relationships
+
+
+```{r}
+plot_correlations(cleaned_data)
+```
+
+
+```{r, results = 'asis'}
+imp_vars <- filter_imp_vars(viz_data = v_data)
+
+imp_vars %>% rename(Name = name, 
+                    Correlation = hpi) %>%
+  stargazer(type = "latex", summary = FALSE, flip = FALSE,
+          title = "Variables with an Absolute Correlation >0.50 with HPI",
+          header = FALSE, no.space = TRUE, rownames = FALSE)
+```
+
+
+
+```{r, warning = FALSE}
+plot_imp_line_matrix(viz_data = v_data, 
+                     imp_vars = imp_vars)
+```
+
+## Modeling
+
+```{r}
+set.seed(100)
+model_data <- read.csv("../data/modelling/modelling.csv")
+train_test_split(model_data, 0.70, 0.30)
+```
+
+
+### Multiple Linear Regression
+
+```{r}
+model_data_lr <- model_data %>% select(-date)
+
+model_data_lr$factor_year <- factor(model_data_lr$year, order = TRUE, 
+                               levels = c(unique(model_data_lr$year)))
+model_data_lr$factor_month <- factor(model_data_lr$month, order = TRUE, 
+                               levels = c(unique(model_data_lr$month)))
+```
+
+```{r}
+train_test_split(model_data_lr, propTrain = 0.70, propTest = 0.30)
+train_lr <- train
+test_lr <- test
+```
+
+```{r}
+model_no_factor <- lm(clcsHPI ~ . -factor_month - factor_year , train_lr)
+model_factor <- lm(clcsHPI ~ . -year -month, train_lr)
+preds_nf <- predict(model_no_factor, test_lr)
+preds_f <- predict(model_factor, test_lr)
+
+plot_residuals_comparison(model_nf = model_no_factor, model_f = model_factor)
+```
+
+```{r}
+errors <- initialize_errors(nrows = 4, row_names = c("MSE", "RMSE", "MAE", "MAPE"))
+errors <- append_errors(errors_df = errors, preds = preds_nf,
+                        model_name = "lr_nf", test = test_lr,
+                        target = "clcsHPI")
+errors <- append_errors(errors_df = errors, preds = preds_f,
+                        model_name = "lr_f", test = test_lr,
+                        target = "clcsHPI")
+```
+
+
+### Bootstrap Regression
+```{r, message = FALSE, results = 'hide'}
+
+mods <- initialize_bootstrap(df = model_data %>% select(-date), 
+                             n_samples = 100, target = "clcsHPI")
+
+bootstrap_models <- generate_bootstrap_models(mods)
+
+bootstrap_results <- calc_95_perc_int(df = model_data, 
+                                      exclude_cols = c("date", "clcsHPI"),
+                                      mods_boot = bootstrap_models) 
+```
+
+
+
+
+```{r, results = 'asis'}
+
+bootstrap_results %>% rename(Feature = name,
+                             "Lower Bound" = lower_bound,
+                             "Upper Bound" = upper_bound) %>%
+  mutate(`Lower Bound` = round(`Lower Bound`, 5),
+         `Upper Bound` = round(`Upper Bound`, 5)) %>%
+  stargazer(type = "latex", header = FALSE,
+            title = "Bootstrap Regression 95 Percent Confidence Intervals",
+            summary = FALSE, flip = FALSE, digits = 5)
+
+```
+
+
+### Linear Model Selection
+
+```{r, warning = FALSE}
+preproc_model_data <- model_df_preprocess(model_data)
+
+train_test_split(preproc_model_data, 0.70, 0.30)
+train_lms <- train
+test_lms <- test
+
+#Get x_train, y_train, x_test, y_test
+x_train <- create_x_matrix(target = "clcsHPI", train_or_test = train_lms)
+y_train <- create_y_vector(target = "clcsHPI", train_or_test_df = train_lms)
+
+x_test <- create_x_matrix(target = "clcsHPI", test_lms)
+y_test <- create_y_vector(target = "clcsHPI", train_or_test_df = test_lms)
+
+
+#Get best lasso lambda
+lasso_optimal_lambda <- get_best_lambda(x_train = x_train, 
+                                        y_train = y_train, alpha = 1)
+
+preds_lasso <- predict(glmnet(x_train, y_train, alpha = 1), 
+                      s = lasso_optimal_lambda, newx = x_test)
+
+errors <- append_errors(errors_df = errors, preds = preds_lasso,
+                        model_name = "lasso", test = test_lms,
+                        target = "clcsHPI")
+```
+
+
+
+```{r}
+#Get best ridge lambda
+ridge_optimal_lambda <- get_best_lambda(x_train = x_train, 
+                                        y_train = y_train, alpha = 0)
+
+preds_ridge <- predict(glmnet(x_train, y_train, alpha = 0), 
+                      s = ridge_optimal_lambda, newx = x_test)
+
+errors <- append_errors(errors_df = errors, preds = preds_ridge,
+                        model_name = "ridge", test = test_lms,
+                        target = "clcsHPI")
+
+```
+
+### Regression Tree
+```{r}
+train_dt <- train
+test_dt <- test
+
+#full tree
+set.seed(100)
+model_tree_full <- rpart(clcsHPI~., data = train, method = "anova",
+                   control = list(cp = 0, xval = 16))
+plotcp(model_tree_full, upper = c("none"), col = palette[2])
+```
+
+```{r}
+#Create tree
+set.seed(100)
+model_tree <- rpart(clcsHPI~.,data=train, method = "anova")
+
+#Visualize regression tree
+rpart.plot(model_tree, box.palette = year_palette[c(21,15)])
+
+```
+
+```{r}
+#Check cp-size trade off -- maxdepth = 6
+plotcp(model_tree, col = palette[2])
+```
+
+```{r}
+
+#Grid search for optimal hyperparams
+
+#Define search area
+grid_tree <- expand.grid(
+  minsplit = seq(5,20,1),
+  maxdepth = seq(6,12,1)
+)
+
+#Search are for hyperparams
+model_tree_list <- get_dt_hyperparameters(grid_tree = grid_tree, 
+                                          train_df = train_dt)
+
+#Extract best minsplit and cp values
+minsplit_optimal <- find_optimum_minsplit(grid_tree = grid_tree, 
+                                          model_list_tree = model_tree_list)
+
+cp_optimal <- find_optimum_cp(grid_tree = grid_tree,
+                              model_list_tree = model_tree_list)
+```
+
+```{r}
+#Plot optimal tree
+set.seed(100)
+model_tree_optimal <- rpart(clcsHPI ~ ., data = train, method = "anova",
+                          control = list(minsplit = minsplit_optimal, maxdepth = 6, cp = cp_optimal))
+
+#Visualize optimal regression tree
+rpart.plot(model_tree_optimal, box.palette = year_palette[c(21,15)])
+
+
+preds_dt_optimal <- predict(model_tree_optimal, test_dt)
+
+
+errors <- append_errors(errors_df = errors, preds = preds_dt_optimal,
+                        model_name = "dt", test = test_dt, 
+                        target = "clcsHPI")
+```
+
+### Random Forest 
+
+```{r}
+
+train_rf <- train
+test_rf <- test
+
+# Initial model
+set.seed(100)
+model_forest <- randomForest(clcsHPI ~ ., data = train, ntree = 1000, importance = TRUE)
+
+preds_forest <- predict(model_forest, test_rf)
+errors <- append_errors(errors_df = errors, preds = preds_forest,
+                        model_name = "untuned_rf", test = test_rf,
+                        target = "clcsHPI")
+
+plot_rf_var_imp(model_rf = model_forest, title = "Untuned Random Forest")
+```
+
+```{r, results = 'hide', warning = FALSE}
+
+#TuneRF
+best_mtry_tune_rf <- tune_rf_get_best_mtry(train_df = train_rf, target_col = "clcsHPI",
+                      step_factor = 1.5, improve = 1e-5, ntree = 501)
+```
+
+```{r, cache=TRUE}
+
+#Grid search
+best_mtry_grid <- grid_search_get_best_mtry(train_df = train_rf, num = 10, rpts = 3, 
+                          mtry_range = c(1:8))
+```
+
+
+```{r}
+set.seed(100)
+model_forest_tuned <- randomForest(clcsHPI~., data=train_rf, 
+                           ntree=1000, mtry=best_mtry_grid, importance = TRUE)
+
+preds_forest_tuned <- predict(model_forest_tuned, test_rf)
+errors <- append_errors(errors_df = errors, preds = preds_forest_tuned,
+                        model_name = "tuned_rf", test = test_rf,
+                        target = "clcsHPI")
+
+plot_rf_var_imp(model_rf = model_forest_tuned, title = "Tuned Random Forest")
+```
+
+
+
+## Interpretation of Results
+
+```{r, results='asis'}
+errors %>%
+  rename("Linear Regression (No Ordinal Encoding)" = lr_nf,
+         "Linear Regression (Ordinal Encoding)" = lr_f,
+         "Lasso Regression" = lasso,
+         "Ridge Regression" = ridge,
+         "Decision Tree (Pruned)" = dt,
+         "Random Forest (Untuned)" = untuned_rf,
+         "Random Forest (Tuned)" = tuned_rf) %>%
+  stargazer(type = "latex", flip = TRUE, summary = FALSE,
+            header = FALSE, 
+            title = "Summary of Evaluation Metrics for all Tested Models")
+```
+
+## Post-Hoc Analysis
+
+```{r}
+
+df_scaled <- load_preprocess_scale_data()
+
+plot_clustering_diagnostics(df_scaled = df_scaled, method = "wss", algorithm = "kmeans")
+```
+
+```{r}
+#Fit K Means -- use silhouette score since metrics don't agree
+set.seed(100)
+model_kmeans <- kmeans(df_scaled, centers = 6)
+```
+
+```{r}
+#Plot clusters
+plot_clusters(model = model_kmeans, df_scaled = df_scaled, algorithm = "kmeans")
+```
+```{r}
+#Boxplots of median hpi across clusters
+plot_median_hpi_across_clusters(model = model_kmeans, algorithm = "kmeans")
+```
+
+```{r}
+plot_bar_median_hpi_across_clusters(model = model_kmeans, algorithm = "kmeans")
+```
+
+```{r}
+plot_clustering_diagnostics(df_scaled = df_scaled, method = "silhouette",
+                            algorithm = "pam")
+```
+```{r}
+set.seed(100)
+model_pam <- pam(df_scaled, stand = T, metric = "manhattan", k = 3)
+```
+
+```{r}
+plot_clusters(model = model_pam, df_scaled = df_scaled, algorithm = "pam")
+```
+```{r}
+plot_median_hpi_across_clusters(model = model_pam, algorithm = "pam")
+```
+
+```{r}
+plot_bar_median_hpi_across_clusters(model = model_pam, algorithm = "pam")
+```
+
+# Conclusion
+
+## Limitations 
+
+## Suggestions for Future Research
+
+# Works Cited
+
+
+Liberto, D. (2023, August 29). Understanding the House price index (HPI) and how it is used. Understanding the House Price Index (HPI) and How It Is Used. <https://www.investopedia.com/terms/h/house-price-index-hpi.asp> 
+
+Rosen, P. (2023, August 11). The US housing market hits a record value of \$47 trillion as the inventory shortage fuels a price boom. Business Insider. <https://markets.businessinsider.com/news/commodities/housing-market-inventory-shortage-home-prices-value-real-estate-property-2023-8.> 
+
+
+# Code Appendix
+
+### Original Column Names
+
+
+```{r}
+write(colnames(modeling_preliminary_data), stdout())
+```
+
+
+### Renamed Column Names
+
+
+```{r}
+write(colnames(renamed_preliminary_data), stdout())
+```
+
+
+### Lasso Coefficients
+
+
+```{r}
+coef(glmnet(x_train, y_train, alpha = 1), s = lasso_optimal_lambda)
+```
+
+
+### Ridge Coefficients
+
+
+```{r}
+coef(glmnet(x_train, y_train, alpha = 0), s = ridge_optimal_lambda)
+```
+
+
+### K Means Output
+
+
+```{r}
+print(model_kmeans)
+```
+
+
+### PAM Output
+
+
+```{r}
+print(model_pam)
+```
+
