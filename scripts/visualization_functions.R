@@ -357,3 +357,68 @@ plot_imp_line_matrix <- function(viz_data, imp_vars){
                      bold("Variables with absolute correlation > 0.50 with HPI")))))
 }
 
+plot_matrix <- function(modeling_data, type = c("density", "boxplot")){
+  if (!require(tidyverse, grid, gridExtra, ggthemes)){
+    
+    stop("Necessary packages not installed.")
+    
+  } else{
+    ev_data <- modeling_data %>%
+      select(-date, -year, -month)
+    
+    plots <- list()
+    col_names <- colnames(ev_data)
+    
+    
+    if (type == "density"){
+      
+      title <- "Distributions"
+      
+      for (col in 1:ncol(ev_data)){
+        plots[[col]] <- ev_data %>%
+          ggplot(aes_string(x = col_names[col])) + 
+          geom_density(fill = palette[2], color = palette[1], 
+                       alpha = 0.80) +
+          theme_bw() +
+          labs(title = col_names[col],
+               x = "") + 
+          theme(plot.title = element_text(face = "bold"),
+                title = element_text(size = 7),
+                axis.text.x = element_text(angle = 45, vjust = 0.25, hjust=0.5),
+                axis.text.y = element_text(size = 5))
+        
+      }
+      
+    } else if (type == "boxplot"){
+      title <- "Boxplots"
+      
+      for (col in 1:ncol(ev_data)){
+      plots[[col]] <- ev_data %>%
+        ggplot(aes_string(x = col_names[col])) + 
+        geom_boxplot(fill = palette[2], color = palette[1], 
+                     alpha = 0.80) +
+        theme_bw() +
+        labs(title = col_names[col],
+             x = "") + 
+        theme(plot.title = element_text(face = "bold"),
+              title = element_text(size = 7),
+              axis.text.x = element_text(angle = 45, vjust = 0.25, hjust=0.5),
+              axis.text.y = element_text(size = 5))
+      } 
+    } else {
+        
+        print("Please enter a valid chart type.")
+        
+      }
+    
+    matrix <- grid.arrange(grobs = plots, nrow = 4, 
+                           top = text_grob(
+                             title, 
+                             size = 15,
+                             face = "bold"))
+    
+    return (matrix)
+  }
+}
+
+

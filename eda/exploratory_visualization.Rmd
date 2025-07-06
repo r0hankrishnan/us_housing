@@ -1,0 +1,122 @@
+
+
+```{r}
+source("../scripts/visualization_functions.R")
+library(tidyverse)
+library(ggthemes)
+library(grid)
+library(gridExtra)
+library(ggpubr)
+```
+
+```{r}
+df <- read.csv("../data/modelling/modelling.csv")
+
+modeling_data <- df
+```
+
+```{r}
+colnames(modeling_data)
+```
+```{r}
+modeling_data %>%
+  mutate(date = as.Date(date)) %>%
+  glimpse() #All features except date are numeric
+
+# Technically year and month are ordinal but we can treat them as numeric
+# for making plots if we want (not really useful)
+```
+```{r}
+ev_data <- modeling_data %>%
+  select(-date, -year, -month)
+```
+
+```{r}
+#Create density plot matrix
+ev_data %>%
+  ggplot(aes(x = ev_data[,1])) + 
+  geom_density(fill = palette[2], color = palette[1], alpha=0.8) +
+  labs(title = paste("Distribution of", colnames(ev_data)[1]),
+       x = colnames(ev_data)[1]) + 
+  theme_bw() +
+  theme(plot.title = element_text(face = "bold"))
+  
+density_plots <- list()
+for (col in 1:ncol(ev_data)){
+  
+  col_names = colnames(ev_data)
+  
+  density_plots[[col]] <- ev_data %>%
+    ggplot(aes_string(x = col_names[col])) +
+    geom_density(fill = palette[2], color = palette[1], 
+                 alpha = 0.80) +
+    theme_bw() +
+    labs(title = col_names[col],
+         x = "") + 
+    theme(plot.title = element_text(face = "bold"),
+          title = element_text(size = 7),
+          axis.text.x = element_text(angle = 45, vjust = 0.25, hjust=0.5))
+  
+}
+
+grid.arrange(grobs = density_plots, nrow = 3, 
+                       top = textGrob(
+                         substitute(
+                           paste(
+                             bold("Distributions")))))
+
+```
+```{r}
+ev_data %>%
+  ggplot(aes(x = ev_data[,7])) + 
+  geom_density(fill = palette[2], color = palette[1], alpha=0.8) +
+  labs(title = paste("Distribution of", colnames(ev_data)[1]),
+       x = colnames(ev_data)[1]) + 
+  theme_bw() +
+  theme(plot.title = element_text(face = "bold"))
+```
+
+```{r}
+box_plots <- list()
+
+for (col in 1:ncol(ev_data)){
+  
+  col_names <- colnames(ev_data)
+  
+  box_plots[[col]] <- ev_data %>%
+    ggplot(aes_string(x = col_names[col])) + 
+    geom_boxplot(fill = palette[2], color = palette[1], 
+                 alpha = 0.80) +
+    theme_bw() +
+    labs(title = col_names[col],
+         x = "") + 
+    theme(plot.title = element_text(face = "bold"),
+          title = element_text(size = 7),
+          axis.text.x = element_text(angle = 45, vjust = 0.25, hjust=0.5))
+}
+
+
+title <- "Boxplots"
+grid.arrange(grobs = box_plots, nrow = 3,
+             top = text_grob(
+               title, 
+               size = 15,
+               face = "bold"))
+```
+```{r}
+ev2 <- ev_data
+```
+
+```{r}
+colnames(ev2) <- paste(colnames(ev2), "Var", sep = "")
+```
+
+```{r}
+ev2 %>%
+  gather(contains("Var"), key = Variable, value = Value) %>%
+  ggplot(aes(x = Value)) + 
+  geom_density(fill = "grey") + 
+  facet_wrap(~Variable) + 
+  theme_bw()
+```
+

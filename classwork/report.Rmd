@@ -4,6 +4,7 @@ subtitle: "Refactored Code and Workflow of STAT 1261 Final Project"
 author: "Rohan Krishnan"
 date: "2023-12-11"
 output: pdf_document
+fig_align: center
 ---
 ```{r, echo = FALSE, message = FALSE, warning = FALSE}
 # Setup code
@@ -26,18 +27,17 @@ load_lin_mod_select_libraries()
 load_dt_libraries()
 load_rf_libraries()
 load_clustering_libraries()
-
 ```
 
-## Introduction
+# Introduction
 
-As of November 2023, the U.S. housing market is valued at 47 trillion USD (Rosen, 2023). With an average year-over-year growth rate of 5.5%, the U.S. housing market is set to remain a key factor in calculating the overall welfare of the nation's economy (CEIC Data, 2023). On a consumer level, home ownership remains tied to the "American Dream", as working class citizens across the country strive towards purchasing, selling, or renting homes. Investors and economists rely on the Housing Price Index (referred to as the HPI from this point onwards) as a key metric for assessing investment feasibility and for determining national economic forecasts.
+As of November 2023, the U.S. housing market is valued at 47 trillion USD (Rosen, 2023). With an average year-over-year growth rate of 5.5%, the U.S. housing market is set to remain a key factor in calculating the overall welfare of the nation's economy (Rosen, 2023). On a consumer level, home ownership remains tied to the "American Dream", as working class citizens across the country strive towards purchasing, selling, or renting homes. Investors and economists rely on the Housing Price Index (referred to as the HPI from this point onwards) as a key metric for assessing investment feasibility and for determining national economic forecasts.
 
 The HPI is a comprehensive macroeconomic measure that monitors the price fluctuations of **single-family** homes nationwide. It also serves as an analytical tool for approximating the changes in the rates of mortgage defaults, prepayments, and housing affordability (Liberto, 2023). The Federal Housing Finance Agency compiles this data by reviewing single family housing mortgages purchased or securitized by Fannie Mac or Freddie Mac. My primary goal for this statistical analysis project was to find an economic data set that I could explore to better understand the U.S. economy. 
- 
 
 
 ## Research Question
+
 
 The primary goal of this project is to examine how the HPI is affected by other macroeconomic factors. By examining how other commonly tracked measures affect the HPI, I aim to better understand the dynamics between macroeconomic measures and will create a useful basis for more focused research in the future. An improved understanding of the relationships may also prove useful in better understanding real estate and broader housing market dynamics. 
 
@@ -68,13 +68,12 @@ To create a unified data frame in R, I left-joined each individual csv file on `
 
 
 ```{r}
-
+#Load raw data and preliminary (post-2003) data
 raw_data <- load_raw_data()
 basic_describe_data(data = raw_data, data_name = "raw")
 
 preliminary_data <- load_preliminary_data()
 basic_describe_data(data = preliminary_data, data_name = "preliminary")
-
 ```
 
 
@@ -117,12 +116,10 @@ Below is a summary table of the preliminary data. This data is what is output af
 
 
 ```{r, results = 'asis', message = FALSE}
-
 #Prelim data summary + NA by columns
 stargazer(preliminary_data, summary = TRUE, type = "latex", 
           title = "Preliminary Data Summary",
           header = FALSE, no.space = TRUE)
-
 ```
 \newpage
 
@@ -133,6 +130,7 @@ Below is a table showing the number of missing values per column.
 
 
 ```{r, results = 'asis'}
+#Extract NA for prelim data and display
 prelim_na_vals <- extract_na_per_column(preliminary_data)
 
 prelim_na_vals %>% rename(Feature = variable,
@@ -150,7 +148,6 @@ First, I will handle the missing data in the `GDP.x` column. As noted above, the
 
 
 ```{r}
-
 #Create imputed GDP column
 im_preliminary_data <- preliminary_data
 im_preliminary_data$imputed_GDP <- impute_GDP(preliminary_data = preliminary_data)
@@ -158,7 +155,6 @@ im_preliminary_data$imputed_GDP <- impute_GDP(preliminary_data = preliminary_dat
 im_preliminary_data <- create_imputed_column(
   imputed_preliminary_data = im_preliminary_data, 
   "GDP.x", "imputed_GDP")
-
 ```
 
 
@@ -166,7 +162,6 @@ After imputing the GDP values, I worked on removing low-quality and duplicate co
 
 
 ```{r}
-
 ## This is the data saved for visualization
 #Remove low quality columns
 #Duplicate post_2003 to keep as intermediate data
@@ -185,7 +180,6 @@ for (i in columns_to_delete){
 write(paste("Imputed data had", ncol(im_preliminary_data), "columns.",
       "\nTrimmed data has", ncol(trimmed_preliminary_data), 
       "columns"), stdout())
-
 ```
 
 
@@ -211,7 +205,6 @@ I then renamed the data for ease of reading.
 
 
 ```{r}
-
 #Rename variables
 renamed_preliminary_data <- modeling_preliminary_data
 
@@ -221,7 +214,6 @@ new_names = c("date", "urban_cpi", "fed_funds_rt", "hpi", "build_permits",
               "urban_pop", "unem_rt", "imputed_gdp")
 
 colnames(renamed_preliminary_data) <- new_names
-
 ```
 
 
@@ -229,7 +221,6 @@ After all of the above preprocessing, I was left with the following missing valu
 
 
 ```{r, results = 'asis'}
-
 # Extract NA values & display in stargazer table
 final_prelim_na_vals <- extract_na_per_column(renamed_preliminary_data)
 
@@ -238,7 +229,6 @@ final_prelim_na_vals %>% rename(Feature = variable,
   stargazer(type = "latex", summary = FALSE, flip = FALSE,
           title = "NA Values by Column After Preprocessing",
           header = FALSE, no.space = TRUE)
-
 ```
 
 
@@ -246,53 +236,108 @@ After renaming the remaining variables for ease of use and examining the remaini
 
 
 ```{r}
-
 # Remove NAs, extract month and year
 cleaned_data <- final_preprocessing(intermediate_data = renamed_preliminary_data)
-
 ```
 
 
 
 ## Modeling and Analysis Plan
 
+
+In order to better understand what factors affect the U.S. HPI, I first explored the features and distributions of the data. Then, I employed several supervised and unsupervised learning techniques to uncover the relationships between each explanatory variable and hpi. This section will outline the specific machine learning methods I chose to use as well as the overall roadmap I took when analyzing the data.
+
+
 ### Description of Analysis
+
+
+For this project, I used a multiple linear regression, bootstrapped regression, LASSO regression, ridge regression, decision tree (unpruned and pruned), and a random forest (untuned and tuned) to understand which variables are most important when predicting the U.S. HPI and to evaluate whether or not we can effectively predict hpi given out-of-sample values for our explanatory variables.
+
 
 ### Analysis Plan
 
+
+This project will follow a portion of the standard data science lifecycle. By this point, I have already completed the data mining and cleaning steps. The following sections will cover exploring the data, creating a few visualizations, and then generating models. I began by using individual density plots to assess each variable’s distribution and skew. I then used boxplots to better understand any imbalances and to visually identify any outliers. Finally, I made a correlation matrix to quantify the linear correlation of each of the features with the U.S. HPI. After finishing the exploratory analysis, I generated several models (see above). For each model, I examined what variables got flagged as important and (when applicable) calculated the test mean squared error (MSE), root mean square error (RMSE),  mean absolute error (MAE), and mean absolute percentage error (MAPE) to evaluate each model’s predictive prowess.
+
+
 # Results
+
+
+This section will contain the results of my exploratory data analysis and the evaluation metrics for the models I built.
+
 
 ## Exploratory Data Analysis
 
-## Descriptive Statistics
-```{r, results = 'asis', message = FALSE, warning = FALSE}
+Before building any models, I worked on thouroughly analyzing and exploring the cleaned data set. This section will discuss our exploratory analysis of the data set.
 
+## Descriptive Statistics
+
+
+Below is a summary table for all of the variables remaining in the data set fit for model generation. As mentioned above, many of these measures have very different scales.
+
+
+```{r, results = 'asis', message = FALSE, warning = FALSE}
 #Cleaned data summary stats
 stargazer(cleaned_data, type = "latex", summary = TRUE, 
           flip = FALSE,  title = "Final Cleaned Data Summary",
           header = FALSE, no.space = TRUE)
-
 ```
+\newpage
 
 
+Because of the differences in scales and the fact that there are only 16 features, I opted to create density and boxplot matrix visualizations. These visualizations allowed me to assess each of the 16 variables' spread and identify any potential outliers in the 240 observations. 
+
+\newpage
 ## Data Visualization
 
-```{r}
 
-#Pre vs post imputation GDP
-
-v_data <- load_viz_data()
-display <- plot_GDP_side_by_side(viz_data = v_data)
+After examining the descriptive statistics for the final set of preprocessed variables, I used density plots, box plots, and a correlation matrix to visualize our data. I started by plotting a density plot matrix to examine the distribution of each variable individually. The density plot matrix of all 16 variables is shown below:
 
 
+```{r, warning = FALSE}
+#Load `modelling` data and plot density matrix
+m_data <- read.csv("../data/modelling/modelling.csv")
+density_plots <- plot_matrix(modeling_data = m_data, type = "density")
 ```
 
+
+As is made clear by the matrix, none of the variables follow a perfect normal distribution. Urban CPI (urbanCPI) appeared heavily right skewed, with a gradual increase followed by a steep drop off. CPI values only tend to take on extremely high values in extreme economic conditions so it makes sense that those range of values would appear far less frequently than more “standard” values. The federal funds rate (fedFunds), for similar reasons, was also heavily right skewed. The Fed only pursues aggressive rate hikes to combat serious inflationary pressure. The U.S. HPI (clcsHPI) appeared to be heavily right skewed. This makes sense as the U.S. HPI likely tends to be around a certain range of values except during unusual economic circumstances. Building permits (buildPermits) seemed to be relatively uniform, with a slight bulge around the central value of the distribution. Building permits, on average, are likely relatively consistent over time but may decrease or increase slightly depending on other macroeconomic features like interest rates. The construction price index has a right skewed distribution. The delinquency rate has a somewhat right skewed distribution with a small increase at the tail. This increase may be due to the 2008 financial crisis. Housing subsidies are also clustered towards the left side of the chart. Median U.S. household income is clearly left-skewed, reflecting the well-known income inequality present in our economy. Mortgage rates appear to be bimodal, perhaps representing the two most common values depending on interest rates. Construction units, unemployment rate, and imputed GDP are both left skewed while housing supply and urban population appear to be relatively uniform. Total construction spend appears to be slightly left skewed, but is the closest to a normal distribution. 
+
+
+After looking at the density plots, it is clear that many of our variables are skewed. In order to get a better understanding of if their skewness is an inherent characteristic of the data or if it is caused by data that may not fit within the broader pattern, I looked at boxplots and identified outliers. Below is a matrix of box plots for all 16 variables in the data:
+
+
+```{r, warning = FALSE}
+#Plot box plot matrix
+boxplots <- plot_matrix(modeling_data = m_data, type = "boxplot")
+```
+
+
+To get a better understanding of the range and outliers of each variable, I examined each of their box plots. Each box plots illustrates the minimum, maximum, 25th to 75th quartiles, and labels any values that fall outside 1.5 times the interquartile range separately. The U.S. HPI and construction price index are the two columns with a high amount of upper outliers. Total construction spending is the only variable with lower outliers.
+
+As discussed above, a potential solution to non-normal distributions would be to remove outliers by either filtering out observations that fall outside of three standard deviations from the mean or that fall outside of 1.5 times the IQR away from the first and third quartiles respectively. Before modeling, I could have tried both methods, re-plotted the box plots and density functions, and decided which method best removes outliers without sacrificing too many observations. After better understanding the distributions and outliers of our variables, we looked at each variable's correlation with our response to understand what variables could be potentially significant. For the purposes of this analysis, I decided to leave the values in because I had already significantly trimmed down the data set.
+
+After looking at the plot matrices, I created some other visualizations to highlight other interesting trends in the data.
+
+
+```{r, warning = FALSE}
+#Pre vs post imputation GDP
+v_data <- load_viz_data()
+
+display <- plot_GDP_side_by_side(viz_data = v_data)
+```
+
+
+The above chart illustrates the seasonal decomposition process used for imputing U.S. GDP. It's clear that by taking into trend and seasonality, the imputer did a fairly good job of matching the movement of the quarterly reported GDP. 
 
 
 ```{r}
 plot_hpi_values(viz_data = cleaned_data, date_col = "date", hpi_col = "hpi", 
                 ff_rt_col = "fed_funds_rt")
 ```
+
+The above chart here illustrates the change in U.S. HPI and federal funds rate over time. The chart shows that the federal funds rate peaked alongside HPI right before the 2008 crash but otherwise did not show any clear paired movement. 
+
 
 ```{r, eval = FALSE, message = FALSE, warning = FALSE}
 ## Line plot matrix
@@ -301,18 +346,34 @@ plot_line_matrix(v_data)
 
 ![Numeric Variables by Year](../assets/vars-by-year.png)\
 
+
+The above plot matrix shows a line plot of all numeric variables over time. There are several somewhat linear relation ships but several that appear highly non-linear. 
+
+
 ```{r}
 ## Plot hpi and cpi over time
 plot_hpi_cpi(v_data)
 ```
 
 
+The above plot tracks average HPI and avereage CPI over time. Both metrics seem to follow the same general trend over the same scale. 
+
+
 ## Relationships
+
+
+The next part of my variable analysis was to create a correlation matrix to better understand the relationship between the features and the U.S. HPI. Below is the full correlation matrix: 
 
 
 ```{r}
 plot_correlations(cleaned_data)
 ```
+
+
+Based on the above plot, the U.S. HPI has a strong positive linear relationship with the U.S. consumer price index, U.S GDP, the construction price index, housing subsidies, U.S. median income, housing supply, urban population, and year. The U.S. HPI has a negative relationship with delinquency rates. As time series analysis is outside the scope of this project, it is important to note that these correlations are not completely representative of the relationships in the data as they do not account for time dependence. 
+
+
+That being said, the correlation matrix highlighted several variables of initial interest to keep an eye for when evaluating future models. After visually inspecting the matrix, I filtered out the variables with the strongest correlations with HPI. I considered an absolute correlation of 0.50 to be the threshold for strong correlation. Below is the code for extracting the most correlated variables:
 
 
 ```{r, results = 'asis'}
@@ -326,13 +387,25 @@ imp_vars %>% rename(Name = name,
 ```
 
 
+The variables highlighted in the introduction all appear with high correlations. Year having such a high correlation may indicate some temporal effects that could warrant a separate analysis and exploration.
+
+In the final part of my analysis, I created scatter plots to examine the specific relationships between this subset of the variables and HPI. Below is the matrix of scatter plots: 
+
 
 ```{r, warning = FALSE}
 plot_imp_line_matrix(viz_data = v_data, 
                      imp_vars = imp_vars)
 ```
 
+
+Based on the above matrix, it is evident that, although these variables had linear correlations above 0.50 (or below -0.50), their relationships are not necessarily linear. For example, urban population and HPI appear to have a polynomial relationship with each other; though the relationship is clearly a positive one. Similarly, delinquency rates and hpi seem to have a strong negative relationship, though it may not be linear as there is a clear “tail” towards the smaller delinquency rate values. Overall, the most linear relationship appears to be between US GDP and hpi and the consumer price index and hpi. 
+
+
 ## Modeling
+
+
+In order to model the behavior of hpi, we chose to explore a variety of models. We first started by splitting the data into a training and testing set.
+
 
 ```{r}
 set.seed(100)
@@ -343,6 +416,12 @@ train_test_split(model_data, 0.70, 0.30)
 
 ### Multiple Linear Regression
 
+
+The first model I created was a multiple linear regression. By running a multiple linear regression, I got the predictions of HPI on a test set and examined the coefficients and p-value of each of the explanatory variables to determine variable importance. 
+
+I tested two regressions, one with an ordinally encoded year and month feature and one without. The residual plots of the two models are shown below:
+
+
 ```{r}
 model_data_lr <- model_data %>% select(-date)
 
@@ -352,11 +431,13 @@ model_data_lr$factor_month <- factor(model_data_lr$month, order = TRUE,
                                levels = c(unique(model_data_lr$month)))
 ```
 
+
 ```{r}
 train_test_split(model_data_lr, propTrain = 0.70, propTest = 0.30)
 train_lr <- train
 test_lr <- test
 ```
+
 
 ```{r}
 model_no_factor <- lm(clcsHPI ~ . -factor_month - factor_year , train_lr)
@@ -366,6 +447,22 @@ preds_f <- predict(model_factor, test_lr)
 
 plot_residuals_comparison(model_nf = model_no_factor, model_f = model_factor)
 ```
+
+
+From the above plots, it appears that ordinally encoding the year and month features resulted in slightly more random residuals, so I considered that the main model. I then output the ordinal model’s coefficient output:
+
+
+```{r, results = 'asis'}
+stargazer(model_factor, type = "latex", header = FALSE,
+          omit = c("year", "month"), title = "Linear Regression Coefficients",
+          no.space = TRUE)
+```
+\newpage
+
+The model indicated that the federal funds rate, number of building permits, construction price index, delinquency rate, unemployment rate, and imputed GDP as the most significant predictors of the U.S. HPI. 
+
+Finally, I recorded the mean squared error (MSE), root mean squared error (RMSE), mean absolute error (MAE), and mean absolute percentage error (MAPE) for both models. 
+
 
 ```{r}
 errors <- initialize_errors(nrows = 4, row_names = c("MSE", "RMSE", "MAE", "MAPE"))
@@ -379,8 +476,11 @@ errors <- append_errors(errors_df = errors, preds = preds_f,
 
 
 ### Bootstrap Regression
-```{r, message = FALSE, results = 'hide'}
 
+Bootstrapping takes advantage of the concept of resampling to generate a distribution-free interval for each variable's coefficient. Because bootstrapping is rather computationally heavy, I decided to only run one bootstrap model on the full formula over 100 samples. After running the bootstrap regression, I calculated the 95% confidence interval for each explanatory variable's coefficient to get a better idea of the specific effect each variable may have on hpi. The confidence intervals are displayed below:
+
+
+```{r, message = FALSE, results = 'hide'}
 mods <- initialize_bootstrap(df = model_data %>% select(-date), 
                              n_samples = 100, target = "clcsHPI")
 
@@ -392,10 +492,7 @@ bootstrap_results <- calc_95_perc_int(df = model_data,
 ```
 
 
-
-
 ```{r, results = 'asis'}
-
 bootstrap_results %>% rename(Feature = name,
                              "Lower Bound" = lower_bound,
                              "Upper Bound" = upper_bound) %>%
@@ -404,11 +501,17 @@ bootstrap_results %>% rename(Feature = name,
   stargazer(type = "latex", header = FALSE,
             title = "Bootstrap Regression 95 Percent Confidence Intervals",
             summary = FALSE, flip = FALSE, digits = 5)
-
 ```
+\newpage
+
+The above table gives us insight into the specific range of effects each variable may have on hpi. Notably, several variables' 95% confidence range of coefficients contain 0 (specifically urban CPI, building permits, median income, mortgage rates, and total construction spending). Overall, the variables that have 0 in their interval overlap with the less significant variables from the linear regression.
 
 
 ### Linear Model Selection
+
+
+After running a full linear regression model, I ran a cross-validated LASSO regression model and a cross-validated ridge regression model. After training and recording the errors, I examined the selected variables by each algorithm (shown in appendix). The LASSO specifically dropped median income and urban population, adding additional insight into variables that may not be worth further examining in relation to the U.S. HPI. The ridge regression did not significantly reduce any variable’s coefficient.  
+
 
 ```{r, warning = FALSE}
 preproc_model_data <- model_df_preprocess(model_data)
@@ -450,10 +553,18 @@ preds_ridge <- predict(glmnet(x_train, y_train, alpha = 0),
 errors <- append_errors(errors_df = errors, preds = preds_ridge,
                         model_name = "ridge", test = test_lms,
                         target = "clcsHPI")
-
 ```
 
+
 ### Regression Tree
+
+
+After examining the linear regression models, I decided to explore non-parametric methods to understand variable importance and develop a predictive model for HPI. The first non-parametric model I tried was a regression tree.
+
+
+It is possible to prune a regression tree by finding the optimal complexity parameter, minimum observations in each split, and maximum number of terminal nodes. To optimize the model using these values, I first visualized the tree itself and the error as the size of the tree increased, as shown below:
+
+
 ```{r}
 train_dt <- train
 test_dt <- test
@@ -462,7 +573,6 @@ test_dt <- test
 set.seed(100)
 model_tree_full <- rpart(clcsHPI~., data = train, method = "anova",
                    control = list(cp = 0, xval = 16))
-plotcp(model_tree_full, upper = c("none"), col = palette[2])
 ```
 
 ```{r}
@@ -472,7 +582,6 @@ model_tree <- rpart(clcsHPI~.,data=train, method = "anova")
 
 #Visualize regression tree
 rpart.plot(model_tree, box.palette = year_palette[c(21,15)])
-
 ```
 
 ```{r}
@@ -480,8 +589,14 @@ rpart.plot(model_tree, box.palette = year_palette[c(21,15)])
 plotcp(model_tree, col = palette[2])
 ```
 
-```{r}
 
+From the above figure, a maxdepth of 6 seemed to be optimal. I confirmed this by creating a regression tree with no cp and graphing its decrease in error as tree size increased.
+
+
+After confirming the optimal maxdepth value, I performed a grid search to find the minsplit and cp value that minimized the error in the regression tree.
+
+
+```{r}
 #Grid search for optimal hyperparams
 
 #Define search area
@@ -502,16 +617,27 @@ cp_optimal <- find_optimum_cp(grid_tree = grid_tree,
                               model_list_tree = model_tree_list)
 ```
 
+
+After running the grid search, I found that the optimal parameters for our regression tree were a minsplit of 5, cp of 0.01, and maxdepth of 6. I then fit our optimized tree and visualized it, as shown below:
+
+
 ```{r}
 #Plot optimal tree
 set.seed(100)
 model_tree_optimal <- rpart(clcsHPI ~ ., data = train, method = "anova",
-                          control = list(minsplit = minsplit_optimal, maxdepth = 6, cp = cp_optimal))
+                          control = list(minsplit = minsplit_optimal, 
+                                         maxdepth = 6, cp = cp_optimal))
 
 #Visualize optimal regression tree
 rpart.plot(model_tree_optimal, box.palette = year_palette[c(21,15)])
+```
 
 
+
+Comparing the two tree visualizations, it is clear that the two trees are identical. This means that the rpart algorithm was able to find the optimal values on its own, likely because the training data was quite small. After pruning our tree, I calculated its evaluation metrics on the test set, as shown in the code block below:
+
+
+```{r}
 preds_dt_optimal <- predict(model_tree_optimal, test_dt)
 
 
@@ -520,10 +646,17 @@ errors <- append_errors(errors_df = errors, preds = preds_dt_optimal,
                         target = "clcsHPI")
 ```
 
+
 ### Random Forest 
 
-```{r}
 
+After the regression tree analysis, I wanted to add an ensemble-learning method to my analysis. So, I decided to run a random forest and then tune it. The below code block shows my initial random forest model. After fitting the initial random forest, I extracted the variable importance and visualized it. The figure below illustrates the variable importance of the random forest sorted by percent increase in MSE:
+
+
+I ranked by percentage increase in MSE because it is the more informative metric. This metric indicates how much the prediction MSE increases when a particular variable is permuted. Based on the above plot, unemployment rate, federal funds, and the urban consumer price index are the three most important variables in predicting HPI.
+
+
+```{r}
 train_rf <- train
 test_rf <- test
 
@@ -539,37 +672,63 @@ errors <- append_errors(errors_df = errors, preds = preds_forest,
 plot_rf_var_imp(model_rf = model_forest, title = "Untuned Random Forest")
 ```
 
-```{r, results = 'hide', warning = FALSE}
 
+After constructing the initial random forest, I conducted a tuneRF search and grid search to find the optimal mtry value. The mtry parameter sets how many variables the model will randomly sample as candidates for each split. Optimizing mtry allows the model to manage the trade off between performance and over fitting. The code block below shows the process of constructing the two optimization processes:
+
+
+```{r, results = 'hide', warning = FALSE}
 #TuneRF
 best_mtry_tune_rf <- tune_rf_get_best_mtry(train_df = train_rf, target_col = "clcsHPI",
                       step_factor = 1.5, improve = 1e-5, ntree = 501)
 ```
 
 ```{r, cache=TRUE}
-
 #Grid search
 best_mtry_grid <- grid_search_get_best_mtry(train_df = train_rf, num = 10, rpts = 3, 
                           mtry_range = c(1:8))
 ```
 
 
+As shown above, the optimal mtry to minimize RMSE is 5. After confirming the optimal mtry value, we fit our tuned random forest model, as shown in the code block below:
+
+
 ```{r}
 set.seed(100)
 model_forest_tuned <- randomForest(clcsHPI~., data=train_rf, 
                            ntree=1000, mtry=best_mtry_grid, importance = TRUE)
+```
 
-preds_forest_tuned <- predict(model_forest_tuned, test_rf)
-errors <- append_errors(errors_df = errors, preds = preds_forest_tuned,
-                        model_name = "tuned_rf", test = test_rf,
-                        target = "clcsHPI")
 
+After fitting the tuned model, I extracted the variable importance values (percent decrease in MSE and increase in node purity) and visualized them, as shown in below:
+
+
+```{r}
 plot_rf_var_imp(model_rf = model_forest_tuned, title = "Tuned Random Forest")
 ```
 
 
+The figure above shows us that unemployment rate, federal funds, and the urban consumer price index were the three most important variables in the tuned random forest (same as the un-tuned model). It is not too surprising that the top variables are still on top, as tuning primarily helps with our model's predictive ability.
+
+
+```{r}
+preds_forest_tuned <- predict(model_forest_tuned, test_rf)
+errors <- append_errors(errors_df = errors, preds = preds_forest_tuned,
+                        model_name = "tuned_rf", test = test_rf,
+                        target = "clcsHPI")
+```
+
+
+After examining the variable importance plot, I calculated the evaluation metrics for the tuned random forest. There was a noticeable improvement in MSE and RMSE after tuning, which was encouraging for my goal of predicting hpi. The evaluation metrics for the tuned random forest are listed in the code bock below:
+
 
 ## Interpretation of Results
+
+
+Across all of the models, both unemployment rate and the federal funds rate showed up consistently as an influential variable. This could indicate some sustained effect these have on HPI regardless of method of analysis. These results indicate that those variables may be an important metric to track for economists interested in housing markets or in the growth of the housing sector.
+
+
+In addition to looking at influential variables, I wanted to assess which of the models was best at predicting hpi using out-of-sample observations. The figure below summarizes the model evaluation statistics for each of our predictive models:
+
 
 ```{r, results='asis'}
 errors %>%
@@ -585,59 +744,152 @@ errors %>%
             title = "Summary of Evaluation Metrics for all Tested Models")
 ```
 
+
+As seen above, the tuned random forest model was by far the best performing model. It outperforms the other models on all three metrics. This makes sense as the economy is a highly irregular system with many moving parts, not lending itself to just linear relationships between variables. Since the data was quite small, I did not run into any computational limitations when running the model.
+
+
+These results indicate that it may be worth examining more non-linear or ensemble learning models in future examinations. When generalizing to the population, there are clearly complex non-normal variables that require more complex models to analyze effectively.
+
+
 ## Post-Hoc Analysis
 
-```{r}
 
+While analyzing economic factors and the U.S. HPI, I wanted to find out HPI trends in similar economic situations. To achieve this, I conducted unsupervised learning based on all variables except the response. In this section, I use K Means and PAM (partitioning around medoids) as unsupervised learning methods.
+
+
+After creating new data excluding HPI from the data used above, I scaled the data to remove the varying units across variables. 
+
+
+Then, I tried to find the appropriate number of clusters for the K Means algorithm.A k of 3 was obtained using the silhouette score. It is important to note that there is no standardized way to select the number of clusters and my diagnostic plots did not all agree. In this case, I chose to use the silhouette score plot for both of my models since it highlighted the optimal number of clusters directly. The figure below illustrates the silhouette score.
+
+
+```{r}
 df_scaled <- load_preprocess_scale_data()
 
-plot_clustering_diagnostics(df_scaled = df_scaled, method = "wss", algorithm = "kmeans")
+plot_clustering_diagnostics(df_scaled = df_scaled, 
+                            method = "silhouette", algorithm = "kmeans")
 ```
+
+
+After deciding on the number of clusters, I ran my K Means algorithm.
+
 
 ```{r}
 #Fit K Means -- use silhouette score since metrics don't agree
 set.seed(100)
-model_kmeans <- kmeans(df_scaled, centers = 6)
+model_kmeans <- kmeans(df_scaled, centers = 3)
 ```
+
+
+Finally, I visualized the K Means clustering, as seen below:
+
 
 ```{r}
 #Plot clusters
 plot_clusters(model = model_kmeans, df_scaled = df_scaled, algorithm = "kmeans")
 ```
+
+
+I then plotted box plots of the HPI distribution of the different clusters, as shown below:
+
+
 ```{r}
 #Boxplots of median hpi across clusters
 plot_median_hpi_across_clusters(model = model_kmeans, algorithm = "kmeans")
 ```
 
+
+I also plotted bar plots of the average HPI over the clusters. 
+
+
 ```{r}
 plot_bar_median_hpi_across_clusters(model = model_kmeans, algorithm = "kmeans")
 ```
+
+
+Although there is some overlap, there is a significant jump in mean HPI between the two clusters. This clustering may be most useful when looking at the upper ends of HPI values in each group as that is where there is the least overlap.
+
+After conducting the K Means clustering, I visualized the silhouette score for the PAM model, as shown below:
+
 
 ```{r}
 plot_clustering_diagnostics(df_scaled = df_scaled, method = "silhouette",
                             algorithm = "pam")
 ```
+
+
+The silhouette plot indicated an optimal k of 3.
+
+After deciding on the number of clusters, I fitted the PAM  model.
+
+
 ```{r}
 set.seed(100)
 model_pam <- pam(df_scaled, stand = T, metric = "manhattan", k = 3)
 ```
 
+
+I then visualized the model, as shown below:
+
+
 ```{r}
 plot_clusters(model = model_pam, df_scaled = df_scaled, algorithm = "pam")
 ```
+
+
+After visualizing the model,I plotted the HPI distribution across clusters with a box plot and the average HPI across clusters using a bar chart.
+
+
 ```{r}
 plot_median_hpi_across_clusters(model = model_pam, algorithm = "pam")
 ```
+
 
 ```{r}
 plot_bar_median_hpi_across_clusters(model = model_pam, algorithm = "pam")
 ```
 
+
+Similar to K Means, there is some overlap with a noticeable jump in median HPI between the 3 clusters. This clustering may be most useful when looking at the upper ends of HPI values in each group as that is where there is the least overlap.
+
+
+When comparing the clustering results with K Means and PAM, only 1 observation was found to be different. As can be seen from the graphs, the shape and order of the 3 clusters were quite similar between the two methods. In the future, it may be useful to look to rejoin the clustered data with their associated dates to allow further economic analysis.
+
+
 # Conclusion
+
+
+With the goal of better understanding the U.S. economy, this project was focused on modeling the relationship between various economic indicators and the U.S. HPI. Using housing and monthly macroeconomic factors, I tried to determine which variables among different, commonly tracked economic features such as GDP, urban cpi (consumer price index), and unemployment rate would impact HPI the most. Moreover, by attempting various modeling techniques, I tried to find a model that could explain HPI using various economic factors.
+
+
+
+U.S. consumer price index, U.S GDP, the construction price index, housing subsidies, U.S. median income, housing supply, urban population, and year. The U.S. HPI has a negative relationship with delinquency rates
+To get a better understanding about the data, I conducted various exploratory analyses. I summarized the data and looked at the distributions of each variable by visualizing density functions and box plots. I also created a correlation matrix and scatter plots to learn about the overall relationship and correlations between HPI and other variables. Specifically, I found that the U.S. consumer price index, U.S GDP, the construction price index, housing subsidies, U.S. median income, housing supply, urban population, year, and delinquency rates had strong linear relationships with HPI.
+
+
+After exploring the data, I created several models to understand variable importance and to predict HPI. I created a multiple linear regression, bootstrapped regression,a LASSO and ridge regression, regression tree, and a random forest. For each predictive model, I examined variable importance and calculated its mean absolute error, mean absolute percent error, mean squared error, and root mean squared error. I found various combinations of features affecting HPI. Among them, unemployment rate and the federal funds rate were included in all models. In terms of predictive ability, I found that the tuned random forest algorithm had the smallest RMSE among the modeling methods implemented, making it the most appropriate modeling technique for predicting HPI given other macroeconomic factors. Finally, as a post-hoc analysis, I ran a K Means and PAM clustering model. Through these unsupervised learning results, I clustered economic situations and confirmed that HPI was distributed noticeably differently depending on these clusters. This finding supports the hypothesis that economic factors have a significant relationship with HPI.
+
+
+Contrary to the existing expectation that important variables in predicting HPI could be clearly identified through modeling, the results that were obtained in the models ended up being different depending on the model. The reason why this outcome occurred could be based on the characteristics of each model. While multiple linear regression analysis detects linear relationships between variables, regression trees or random forests can capture non-linear relationships. Additionally, in the case of bootstrap regression, the importance of predictor variables may vary depending on the bootstrapped sample.
+
+
+This introductory exploration of analyzing the dynamics of the U.S. HPI can serve as a stepping stone to better understand the US real estate market and, by extension, the economy. It may help people develop their investment strategy and make financial decisions, as anticipated fluctuations in housing prices can impact decisions related to home purchases, sales, and rentals. HPI predictions can also contribute to evaluating the health of the real estate market, enabling governments and central banks to formulate policies to maintain stability in the overall economy.
+
 
 ## Limitations 
 
+
+The real estate-related data I used in the analysis was time series data representing monthly indicators. Since the dependent variable, HPI, is likely affected by the passage of time, it would have been useful to apply time series modelling to the data. This was, however, outside of the scope.
+
+
+Furthermore, in the original data sets, there were several excluded variables due to their large number of missing values. In general, there was a very low volume of data to work with. Having more observations, whether that was via daily observations or a larger time window of consideration would have likely made the models much more robust.
+
+
 ## Suggestions for Future Research
+
+
+For this research project, I considered all of the variables as numeric variables. With numeric variables, I could apply several analysis methods such as regression trees, random forest, and multiple linear regression. In future research, changing the class of some variables to a categorical class can open up new possibilities for analysis and modeling. This could allow for completely new results compared to the original method. Integrating the role of technology and its impact on the real estate market and how that affects the HPI variable may also prove particularly insightful.
+
 
 # Works Cited
 
@@ -648,6 +900,10 @@ Rosen, P. (2023, August 11). The US housing market hits a record value of \$47 t
 
 
 # Code Appendix
+
+
+The full code and analysis process can be found on the project's public [GitHub repository](https://github.com/r0hankrishnan/us_housing).
+
 
 ### Original Column Names
 
